@@ -14,6 +14,12 @@ export const MESSAGE_TYPES = Object.freeze({
 
 export const CONFIG_STORAGE_KEY = 'alternaTab.config.v1';
 
+// Premium feature limits
+export const LIMITS = Object.freeze({
+  FREE_DOMAIN_COLORS: 5,      // Max custom domain colors for free users
+  PREMIUM_DOMAIN_COLORS: 999, // Effectively unlimited for premium
+});
+
 export const DEFAULT_CONFIG = Object.freeze({
   compactStorageKey: 'alternaTab.compact',
   statusDisplayMs: 4500,

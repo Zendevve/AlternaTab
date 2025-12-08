@@ -207,6 +207,13 @@
       item.dataset.index = i;
       item.dataset.tabId = t.id;
       item.dataset.windowId = t.windowId;
+
+      // ARIA accessibility attributes
+      item.setAttribute('role', 'option');
+      item.setAttribute('aria-selected', 'false');
+      item.setAttribute('aria-label', `${t.title || 'Untitled'}, ${extractDomain(t.url) || 'unknown domain'}${t.active ? ', active' : ''}${t.pinned ? ', pinned' : ''}`);
+      item.setAttribute('tabindex', '-1');
+
       const domain = extractDomain(t.url);
       if (domain) {
         item.dataset.domain = domain;
@@ -561,7 +568,9 @@
   const highlight = (index) => {
     const items = overlayRoot.querySelectorAll('.alterna-item');
     items.forEach((el, i) => {
-      el.classList.toggle('selected', i === index);
+      const isSelected = i === index;
+      el.classList.toggle('selected', isSelected);
+      el.setAttribute('aria-selected', String(isSelected));
     });
     // Ensure selected item visible
     const sel = overlayRoot.querySelector('.alterna-item.selected');
@@ -576,7 +585,10 @@
   function createFaviconElement(tab) {
     const wrapper = document.createElement('div');
     wrapper.className = 'alterna-fav';
+    const domain = tab && tab.url ? extractDomain(tab.url) : '';
+    const accentColor = getDomainAccent(domain);
     const src = tab.favIcon;
+
     if (src && typeof src === 'string' && src.trim()) {
       const img = document.createElement('img');
       img.src = src;
@@ -585,12 +597,20 @@
       img.addEventListener('error', () => {
         wrapper.classList.add('placeholder');
         wrapper.textContent = deriveInitials(tab);
+        // Apply accent color to placeholder background
+        if (accentColor) {
+          wrapper.style.setProperty('--fav-accent', accentColor);
+        }
         img.remove();
       }, { once: true });
       wrapper.appendChild(img);
     } else {
       wrapper.classList.add('placeholder');
       wrapper.textContent = deriveInitials(tab);
+      // Apply accent color to placeholder background
+      if (accentColor) {
+        wrapper.style.setProperty('--fav-accent', accentColor);
+      }
     }
     return wrapper;
   }
