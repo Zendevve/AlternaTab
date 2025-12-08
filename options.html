@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlternaTab Options</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <main>
+    <header class="page-header">
+      <div class="header-content">
+        <h1>AlternaTab Preferences</h1>
+        <p class="subtitle">Tune status durations and domain highlight colors to match your workflow.</p>
+      </div>
+      <div class="header-meta">
+        <span id="extension-version" class="status-chip muted"></span>
+        <span id="save-state" class="status-chip" role="status" aria-live="polite">Loading…</span>
+      </div>
+    </header>
+
+    <section class="card">
+      <h2>Display Settings</h2>
+      <p class="section-intro">Adjust how long feedback messages stay visible and curate the accent colors you see in the overlay.</p>
+      <form id="settings-form">
+        <div class="field-grid">
+          <div class="field-group">
+            <label for="status-duration">Status Message Duration (ms)</label>
+            <input type="number" id="status-duration" name="statusDuration" min="500" step="100" required />
+            <p class="hint">Controls informational status visibility inside the switcher overlay.</p>
+          </div>
+
+          <div class="field-group">
+            <label for="error-duration">Error Message Duration (ms)</label>
+            <input type="number" id="error-duration" name="errorDuration" min="1000" step="100" required />
+            <p class="hint">Longer durations give errors more time to be noticed.</p>
+          </div>
+        </div>
+
+        <div class="field-group domain-group">
+          <label>Domain Highlight Colors</label>
+          <p class="hint">Override accent colors for domains you visit often. Leave blank to keep automatic colors.</p>
+          <div class="domain-table-wrapper" id="domain-table-wrapper">
+            <p id="domain-empty" class="empty-state" hidden>No custom domains yet. Add one to override highlight colors.</p>
+            <div class="domain-table-scroll" role="region" aria-label="Custom domain colors">
+              <table id="domain-table">
+                <thead>
+                  <tr>
+                    <th>Domain</th>
+                    <th>Color</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="domain-body"></tbody>
+              </table>
+            </div>
+          </div>
+          <button type="button" id="add-domain" class="secondary">Add domain override</button>
+        </div>
+
+        <div class="actions">
+          <button type="button" id="reset" class="ghost">Reset to defaults</button>
+          <button type="submit" id="save" class="primary">Save changes</button>
+        </div>
+      </form>
+    </section>
+
+    <footer class="page-footer">
+      <p>Looking for more controls? Visit the <a href="https://github.com/" target="_blank" rel="noopener noreferrer">project repository</a> or open an issue with feedback.</p>
+    </footer>
+
+    <div id="toast" role="status" aria-live="polite"></div>
+  </main>
+
+  <script src="options.js" type="module"></script>
+</body>
+</html>
