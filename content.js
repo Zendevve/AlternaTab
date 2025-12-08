@@ -87,6 +87,17 @@
         </div>
         <div id="alterna-status" role="status" aria-live="polite"></div>
         <div id="alterna-list"></div>
+        <div id="alterna-empty" class="empty-state" hidden>
+          <span class="empty-icon">🔍</span>
+          <span class="empty-text">No tabs match your search</span>
+        </div>
+        <div id="alterna-footer" class="keyboard-hints">
+          <span class="hint"><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+          <span class="hint"><kbd>Enter</kbd> Switch</span>
+          <span class="hint"><kbd>Ctrl+W</kbd> Close</span>
+          <span class="hint"><kbd>Ctrl+F</kbd> Search</span>
+          <span class="hint"><kbd>Esc</kbd> Cancel</span>
+        </div>
         <div id="alterna-toast-stack" role="status" aria-live="polite" aria-atomic="true"></div>
       </div>
     `;
@@ -156,21 +167,46 @@
     tabItems = sortedTabs;
     lastRenderedTabIds = sortedTabs.map((tab) => tab.id);
     const list = overlayRoot.querySelector('#alterna-list');
+    const emptyEl = overlayRoot.querySelector('#alterna-empty');
     list.innerHTML = '';
     updateCountLabel(sortedTabs.length);
+
+    // Handle empty state
     if (sortedTabs.length === 0) {
-      const emptyMessage = filterText ? 'No tabs match your search.' : 'No tabs available in this window.';
-      showStatus(emptyMessage, { persistent: true });
+      if (emptyEl) {
+        emptyEl.hidden = false;
+        emptyEl.querySelector('.empty-text').textContent =
+          filterText ? 'No tabs match your search' : 'No tabs available';
+      }
       selectedIndex = 0;
       lastRenderedTabIds = [];
       return;
     }
+    if (emptyEl) emptyEl.hidden = true;
     clearStatus();
+
+    // Track windows for separators in cross-window mode
+    let lastWindowId = null;
+    const currentWindowId = sortedTabs.find(t => t.active)?.windowId;
+
     sortedTabs.forEach((t, i) => {
+      // Add window separator when window changes (cross-window mode)
+      if (crossWindowEnabled && lastWindowId !== null && t.windowId !== lastWindowId) {
+        const separator = document.createElement('div');
+        separator.className = 'alterna-window-separator';
+        const isCurrentWindow = t.windowId === currentWindowId;
+        separator.innerHTML = `<span class="separator-label">${isCurrentWindow ? '📌 Current Window' : '🪟 Other Window'}</span>`;
+        list.appendChild(separator);
+      }
+      lastWindowId = t.windowId;
+
       const item = document.createElement('div');
       item.className = 'alterna-item';
+      // Mark active tab and current window
+      if (t.active) item.classList.add('is-active-tab');
       item.dataset.index = i;
       item.dataset.tabId = t.id;
+      item.dataset.windowId = t.windowId;
       const domain = extractDomain(t.url);
       if (domain) {
         item.dataset.domain = domain;
