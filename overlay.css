@@ -114,9 +114,9 @@
   transform: scale(0.98);
 }
 
+/* Active tab - subtle indicator since domain colors provide grouping */
 .alternatab-item.active {
-  border-left: 3px solid var(--at-accent);
-  padding-left: 9px;
+  background: var(--at-bg-selected);
 }
 
 /* Favicon */
