@@ -9,6 +9,8 @@ async function load() {
   try {
     const response = await chrome.runtime.sendMessage({ type: MESSAGE_TYPES.GET_CONFIG });
     document.getElementById('crossWindow').checked = response.config?.crossWindow ?? true;
+    document.getElementById('autoCloseOnSwitch').checked = response.config?.autoCloseOnSwitch ?? false;
+    document.getElementById('rememberLastPosition').checked = response.config?.rememberLastPosition ?? true;
   } catch (err) {
     console.error('Failed to load config:', err);
   }
@@ -16,7 +18,9 @@ async function load() {
 
 async function save() {
   const config = {
-    crossWindow: document.getElementById('crossWindow').checked
+    crossWindow: document.getElementById('crossWindow').checked,
+    autoCloseOnSwitch: document.getElementById('autoCloseOnSwitch').checked,
+    rememberLastPosition: document.getElementById('rememberLastPosition').checked
   };
 
   try {

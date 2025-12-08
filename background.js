@@ -6,12 +6,19 @@ const MESSAGE_TYPES = {
   ACTIVATE_TAB: 'ACTIVATE_TAB',
   CLOSE_TAB: 'CLOSE_TAB',
   GET_CONFIG: 'GET_CONFIG',
-  SET_CONFIG: 'SET_CONFIG'
+  SET_CONFIG: 'SET_CONFIG',
+  SAVE_LAST_POSITION: 'SAVE_LAST_POSITION',
+  GET_LAST_POSITION: 'GET_LAST_POSITION'
 };
 
 const DEFAULT_CONFIG = {
-  crossWindow: true
+  crossWindow: true,
+  autoCloseOnSwitch: false,    // Close overlay instantly on tab switch
+  rememberLastPosition: true   // Remember last selected tab position
 };
+
+// Session storage for last position (resets on browser restart)
+let lastPosition = 0;
 
 // Get stored config
 async function getConfig() {
@@ -114,6 +121,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       case MESSAGE_TYPES.SET_CONFIG: {
         await setConfig(msg.config);
         sendResponse({ ok: true });
+        break;
+      }
+
+      case MESSAGE_TYPES.SAVE_LAST_POSITION: {
+        lastPosition = msg.position || 0;
+        sendResponse({ ok: true });
+        break;
+      }
+
+      case MESSAGE_TYPES.GET_LAST_POSITION: {
+        sendResponse({ position: lastPosition });
         break;
       }
 

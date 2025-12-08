@@ -1,6 +1,32 @@
 /* overlay.css — AlternaTab v2.0 */
 /* Invisible Interface: minimal, instant, flat */
 
+/* Theme variables (dark default) */
+:root {
+  --at-bg: #1a1a1e;
+  --at-bg-hover: rgba(255, 255, 255, 0.08);
+  --at-bg-selected: rgba(255, 255, 255, 0.12);
+  --at-border: rgba(255, 255, 255, 0.1);
+  --at-text: #fff;
+  --at-text-muted: rgba(255, 255, 255, 0.4);
+  --at-accent: #4a9eff;
+  --at-overlay: rgba(0, 0, 0, 0.5);
+}
+
+/* Light mode */
+@media (prefers-color-scheme: light) {
+  :root {
+    --at-bg: #ffffff;
+    --at-bg-hover: rgba(0, 0, 0, 0.05);
+    --at-bg-selected: rgba(0, 0, 0, 0.08);
+    --at-border: rgba(0, 0, 0, 0.12);
+    --at-text: #1a1a1e;
+    --at-text-muted: rgba(0, 0, 0, 0.5);
+    --at-accent: #2563eb;
+    --at-overlay: rgba(0, 0, 0, 0.3);
+  }
+}
+
 #alternatab-overlay {
   position: fixed;
   inset: 0;
@@ -8,7 +34,7 @@
   display: none;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--at-overlay);
   font-family: system-ui, -apple-system, sans-serif;
 }
 
@@ -19,12 +45,13 @@
 .alternatab-shell {
   width: min(500px, 90vw);
   max-height: 70vh;
-  background: #1a1a1e;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--at-bg);
+  border: 1px solid var(--at-border);
   border-radius: 8px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
 /* Search */
@@ -32,15 +59,15 @@
   width: 100%;
   padding: 12px 14px;
   border: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--at-border);
   background: transparent;
-  color: #fff;
+  color: var(--at-text);
   font-size: 14px;
   outline: none;
 }
 
 .alternatab-search::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--at-text-muted);
 }
 
 /* Tab list */
@@ -62,15 +89,15 @@
 }
 
 .alternatab-item:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--at-bg-hover);
 }
 
 .alternatab-item.selected {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--at-bg-selected);
 }
 
 .alternatab-item.active {
-  border-left: 3px solid #4a9eff;
+  border-left: 3px solid var(--at-accent);
   padding-left: 9px;
 }
 
@@ -85,14 +112,15 @@
 .alternatab-num {
   width: 16px;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--at-text-muted);
   text-align: center;
   flex-shrink: 0;
 }
 
 .alternatab-item:hover .alternatab-num,
 .alternatab-item.selected .alternatab-num {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--at-text);
+  opacity: 0.6;
 }
 
 /* Meta container */
@@ -106,7 +134,7 @@
 
 /* Title */
 .alternatab-title {
-  color: #fff;
+  color: var(--at-text);
   font-size: 13px;
   white-space: nowrap;
   overflow: hidden;
@@ -117,7 +145,7 @@
 .alternatab-url {
   display: none;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--at-text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -126,6 +154,20 @@
 .alternatab-item:hover .alternatab-url,
 .alternatab-item.selected .alternatab-url {
   display: block;
+}
+
+/* Shift-held: show full URL on all items */
+.shift-preview .alternatab-url {
+  display: block;
+}
+
+/* Instant close - skip transition */
+#alternatab-overlay.instant-close {
+  transition: none !important;
+}
+
+#alternatab-overlay.instant-close .alternatab-shell {
+  transition: none !important;
 }
 
 /* Icons */
@@ -141,19 +183,20 @@
   display: none;
   padding: 20px;
   text-align: center;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--at-text-muted);
   font-size: 13px;
 }
 
-/* Context menu */
+/* Context menu - uses theme variables */
 .alternatab-context {
   position: fixed;
   z-index: 2147483647;
-  background: #1a1a1e;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--at-bg);
+  border: 1px solid var(--at-border);
   border-radius: 6px;
   padding: 4px;
   min-width: 140px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .alternatab-context button {
@@ -163,14 +206,14 @@
   border: none;
   border-radius: 4px;
   background: transparent;
-  color: #fff;
+  color: var(--at-text);
   font-size: 13px;
   text-align: left;
   cursor: pointer;
 }
 
 .alternatab-context button:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--at-bg-hover);
 }
 
 /* Scrollbar */

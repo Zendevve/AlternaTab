@@ -7,7 +7,9 @@
   const MESSAGE_TYPES = {
     GET_TABS: 'GET_TABS',
     ACTIVATE_TAB: 'ACTIVATE_TAB',
-    CLOSE_TAB: 'CLOSE_TAB'
+    CLOSE_TAB: 'CLOSE_TAB',
+    SAVE_LAST_POSITION: 'SAVE_LAST_POSITION',
+    GET_LAST_POSITION: 'GET_LAST_POSITION'
   };
 
   let overlay = null;
@@ -17,6 +19,7 @@
   let selected = 0;
   let filter = '';
   let config = {};
+  let shiftHeld = false;  // Track Shift key for URL preview
 
   // Create overlay DOM
   function createOverlay() {
@@ -45,13 +48,25 @@
   }
 
   // Show overlay with tabs
-  function show(tabList, cfg) {
+  async function show(tabList, cfg) {
     if (!overlay) createOverlay();
 
     tabs = tabList;
     config = cfg;
     filter = '';
     selected = 0;
+
+    // Restore last position if enabled
+    if (config.rememberLastPosition) {
+      try {
+        const response = await chrome.runtime.sendMessage({ type: MESSAGE_TYPES.GET_LAST_POSITION });
+        if (response?.position !== undefined && response.position < tabList.length) {
+          selected = response.position;
+        }
+      } catch (err) {
+        // Ignore errors, default to 0
+      }
+    }
 
     const search = overlay.querySelector('.alternatab-search');
     search.value = '';
@@ -64,14 +79,43 @@
     setTimeout(() => search.focus(), 10);
 
     document.addEventListener('keydown', handleKey);
+    document.addEventListener('keydown', handleShiftDown);
+    document.addEventListener('keyup', handleShiftUp);
+  }
+
+  // Handle Shift key for URL preview
+  function handleShiftDown(e) {
+    if (e.key === 'Shift' && !shiftHeld) {
+      shiftHeld = true;
+      overlay?.classList.add('shift-preview');
+    }
+  }
+
+  function handleShiftUp(e) {
+    if (e.key === 'Shift') {
+      shiftHeld = false;
+      overlay?.classList.remove('shift-preview');
+    }
   }
 
   // Hide overlay
-  function hide() {
+  function hide(instant = false) {
     if (!overlay || !visible) return;
-    overlay.classList.remove('visible');
+
+    // Instant close or normal fade
+    if (instant) {
+      overlay.classList.add('instant-close');
+    }
+    overlay.classList.remove('visible', 'shift-preview');
+
+    // Reset after transition
+    setTimeout(() => overlay?.classList.remove('instant-close'), 150);
+
     visible = false;
+    shiftHeld = false;
     document.removeEventListener('keydown', handleKey);
+    document.removeEventListener('keydown', handleShiftDown);
+    document.removeEventListener('keyup', handleShiftUp);
   }
 
   // Fuzzy match: 'gml' matches 'Gmail'
@@ -204,12 +248,22 @@
     if (!tab) return;
 
     try {
+      // Save last position if enabled
+      if (config.rememberLastPosition) {
+        chrome.runtime.sendMessage({
+          type: MESSAGE_TYPES.SAVE_LAST_POSITION,
+          position: index
+        });
+      }
+
       await chrome.runtime.sendMessage({
         type: MESSAGE_TYPES.ACTIVATE_TAB,
         tabId: tab.id,
         windowId: tab.windowId
       });
-      hide();
+
+      // Use instant close if enabled
+      hide(config.autoCloseOnSwitch);
     } catch (err) {
       console.error('Failed to activate tab:', err);
     }
