@@ -8,8 +8,10 @@
     GET_TABS: 'GET_TABS',
     ACTIVATE_TAB: 'ACTIVATE_TAB',
     CLOSE_TAB: 'CLOSE_TAB',
+    CLOSE_DUPLICATES: 'CLOSE_DUPLICATES',
     SAVE_LAST_POSITION: 'SAVE_LAST_POSITION',
-    GET_LAST_POSITION: 'GET_LAST_POSITION'
+    GET_LAST_POSITION: 'GET_LAST_POSITION',
+    TOGGLE_FAVORITE: 'TOGGLE_FAVORITE'
   };
 
   let overlay = null;
@@ -157,8 +159,9 @@
     empty.style.display = 'none';
 
     list.innerHTML = filtered.map((t, i) => `
-      <div class="alternatab-item ${i === selected ? 'selected' : ''} ${t.active ? 'active' : ''}"
-           data-index="${i}" data-id="${t.id}">
+      <div class="alternatab-item ${i === selected ? 'selected' : ''} ${t.active ? 'active' : ''} ${t.isFavorite ? 'favorite' : ''}"
+           data-index="${i}" data-id="${t.id}" data-url="${escapeHtml(t.url)}">
+        <span class="alternatab-color" style="background: ${t.domainColor}"></span>
         <span class="alternatab-num">${i < 9 ? i + 1 : ''}</span>
         <img class="alternatab-favicon" src="${t.favIconUrl || ''}"
              onerror="this.style.display='none'" />
@@ -167,6 +170,7 @@
           <span class="alternatab-url">${highlightMatch(escapeHtml(shiftHeld ? t.url : getDomain(t.url)))}</span>
         </div>
         <span class="alternatab-icons">
+          <span class="alternatab-star" title="Toggle Favorite">${t.isFavorite ? '★' : '☆'}</span>
           ${t.pinned ? '<span title="Pinned">📌</span>' : ''}
           ${t.audible && !t.muted ? '<span title="Playing">🔊</span>' : ''}
           ${t.muted ? '<span title="Muted">🔇</span>' : ''}
@@ -176,13 +180,26 @@
 
     // Click handlers
     list.querySelectorAll('.alternatab-item').forEach(el => {
-      el.addEventListener('click', () => activateTab(parseInt(el.dataset.index)));
+      el.addEventListener('click', (e) => {
+        // Don't activate if clicking the star
+        if (e.target.classList.contains('alternatab-star')) return;
+        activateTab(parseInt(el.dataset.index));
+      });
       el.addEventListener('auxclick', (e) => {
         if (e.button === 1) closeTab(parseInt(el.dataset.index));
       });
       el.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         showContextMenu(e, parseInt(el.dataset.index));
+      });
+    });
+
+    // Star click handlers for favorites
+    list.querySelectorAll('.alternatab-star').forEach(star => {
+      star.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const item = star.closest('.alternatab-item');
+        toggleFavorite(parseInt(item.dataset.index));
       });
     });
 
@@ -239,6 +256,22 @@
           closeTab(selected);
         }
         break;
+
+      case 'f':
+        // Toggle favorite on selected tab
+        if (!e.ctrlKey && !e.altKey) {
+          e.preventDefault();
+          toggleFavorite(selected);
+        }
+        break;
+
+      case 'd':
+        // Close all duplicate tabs
+        if (e.ctrlKey) {
+          e.preventDefault();
+          closeDuplicates();
+        }
+        break;
     }
   }
 
@@ -287,6 +320,48 @@
       if (filtered.length === 0) hide();
     } catch (err) {
       console.error('Failed to close tab:', err);
+    }
+  }
+
+  // Toggle favorite on tab
+  async function toggleFavorite(index) {
+    const tab = filtered[index];
+    if (!tab) return;
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: MESSAGE_TYPES.TOGGLE_FAVORITE,
+        url: tab.url
+      });
+
+      // Update local state
+      tab.isFavorite = response.isFavorite;
+
+      // Re-sort and render
+      if (response.isFavorite) {
+        // Move to top of favorites
+        tabs = tabs.filter(t => t.id !== tab.id);
+        tabs.unshift(tab);
+      }
+      applyFilter();
+    } catch (err) {
+      console.error('Failed to toggle favorite:', err);
+    }
+  }
+
+  // Close all duplicate tabs
+  async function closeDuplicates() {
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: MESSAGE_TYPES.CLOSE_DUPLICATES
+      });
+
+      if (response.closed > 0) {
+        // Refresh tab list
+        hide();
+      }
+    } catch (err) {
+      console.error('Failed to close duplicates:', err);
     }
   }
 

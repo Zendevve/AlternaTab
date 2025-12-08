@@ -12,6 +12,9 @@
 | 💾 **Remember Position** | Reopens at last selected tab |
 | 🌗 **Auto Theme** | Follows system dark/light mode |
 | ⚡ **Instant Close** | Optional in settings |
+| 🎨 **Domain Colors** | Visual grouping by site |
+| ⭐ **Favorites** | Pin tabs to top with `F` key |
+| 🧹 **Close Duplicates** | `Ctrl+D` to clean up |
 
 ## Installation
 
@@ -31,6 +34,9 @@
 | `Escape` | Hide overlay |
 | `1-9` | Quick switch |
 | `Shift` | Show full URLs |
+| `F` | Toggle favorite |
+| `Ctrl+D` | Close all duplicates |
+| `Ctrl+W` | Close selected tab |
 
 ## Settings
 

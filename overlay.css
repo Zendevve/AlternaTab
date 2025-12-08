@@ -126,6 +126,33 @@
   flex-shrink: 0;
 }
 
+/* Domain color indicator */
+.alternatab-color {
+  width: 4px;
+  height: 24px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+/* Favorites star */
+.alternatab-star {
+  cursor: pointer;
+  opacity: 0.4;
+  transition: opacity 0.15s, transform 0.15s;
+  font-size: 14px;
+}
+
+.alternatab-star:hover {
+  opacity: 1;
+  transform: scale(1.2);
+}
+
+.alternatab-item.favorite .alternatab-star {
+  opacity: 1;
+  color: #fbbf24;
+}
+
 /* Number indicator (1-9) */
 .alternatab-num {
   width: 16px;
