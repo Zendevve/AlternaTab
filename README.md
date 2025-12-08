@@ -1,31 +1,47 @@
-# AlternaTab — Alt-Tab for Chrome Tabs
+# AlternaTab
 
-## Installation (developer mode)
+**Fast tab switcher for Chrome** — Press `Alt+Q` to instantly switch between tabs.
 
-1. Save this folder to disk.
-2. Open `chrome://extensions` in Chrome.
-3. Enable "Developer mode".
-4. Click "Load unpacked" and select this folder.
-5. Press Alt+Q to toggle the overlay. If Chrome blocks the shortcut, set it under `chrome://extensions/shortcuts`.
+## Features
 
-## Usage
+| Feature | How |
+|---------|-----|
+| 🔍 **Fuzzy Search** | Just start typing to filter |
+| ⌨️ **Quick Switch** | Press `1-9` to jump to tab |
+| 🔗 **URL Preview** | Hold `Shift` to see full URLs |
+| 💾 **Remember Position** | Reopens at last selected tab |
+| 🌗 **Auto Theme** | Follows system dark/light mode |
+| ⚡ **Instant Close** | Optional in settings |
 
-- Use Arrow Up/Down to navigate.
-- Press Enter to switch to the selected tab.
-- Press Delete to close the selected tab.
-- Press Escape to hide the overlay.
+## Installation
 
-## Files
+1. Clone/download this folder
+2. Open `chrome://extensions`
+3. Enable **Developer mode**
+4. Click **Load unpacked** → select folder
+5. Press `Alt+Q` to use (or set shortcut at `chrome://extensions/shortcuts`)
 
-- `manifest.json`
-- `background.js`
-- `content.js`
-- `overlay.css`
-- `icons/` (place `icon16.png`, `icon48.png`, `icon128.png` here)
+## Keyboard Shortcuts
 
-## Notes
+| Key | Action |
+|-----|--------|
+| `↑` `↓` | Navigate |
+| `Enter` | Switch to tab |
+| `Delete` | Close tab |
+| `Escape` | Hide overlay |
+| `1-9` | Quick switch |
+| `Shift` | Show full URLs |
 
-- Tab list is ordered by `lastAccessed` (MRU) where available.
-- `chrome://` and extension pages are filtered out.
-- Content script runs on all pages at `document_idle` for responsiveness.
-- Keyboard shortcut: Alt+Q (configurable in Chrome shortcuts).
+## Settings
+
+Right-click extension icon → **Options**
+
+- Show tabs from all windows
+- Close overlay instantly on switch
+- Remember last selected position
+
+## Philosophy
+
+> **Invisible Interface** — The best UI is one you forget is there.
+
+AlternaTab is designed to be minimal, instant, and keyboard-first.

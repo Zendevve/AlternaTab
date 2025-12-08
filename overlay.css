@@ -31,15 +31,21 @@
   position: fixed;
   inset: 0;
   z-index: 2147483647;
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
   background: var(--at-overlay);
   font-family: system-ui, -apple-system, sans-serif;
+
+  /* Smooth fade animation */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
 }
 
 #alternatab-overlay.visible {
-  display: flex;
+  opacity: 1;
+  visibility: visible;
 }
 
 .alternatab-shell {
@@ -47,11 +53,19 @@
   max-height: 70vh;
   background: var(--at-bg);
   border: 1px solid var(--at-border);
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.25), 0 0 0 1px var(--at-border);
+
+  /* Smooth scale animation */
+  transform: scale(0.96);
+  transition: transform 0.15s ease;
+}
+
+#alternatab-overlay.visible .alternatab-shell {
+  transform: scale(1);
 }
 
 /* Search */
@@ -83,9 +97,9 @@
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  transition: background 0.1s;
+  transition: background 0.12s ease, transform 0.1s ease;
 }
 
 .alternatab-item:hover {
@@ -94,6 +108,10 @@
 
 .alternatab-item.selected {
   background: var(--at-bg-selected);
+}
+
+.alternatab-item:active {
+  transform: scale(0.98);
 }
 
 .alternatab-item.active {
@@ -139,6 +157,14 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Search match highlight */
+.alternatab-title mark,
+.alternatab-url mark {
+  background: transparent;
+  color: var(--at-accent);
+  font-weight: 600;
 }
 
 /* URL - hidden by default, shown on hover */

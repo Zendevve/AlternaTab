@@ -158,13 +158,13 @@
 
     list.innerHTML = filtered.map((t, i) => `
       <div class="alternatab-item ${i === selected ? 'selected' : ''} ${t.active ? 'active' : ''}"
-           data-index="${i}">
+           data-index="${i}" data-id="${t.id}">
         <span class="alternatab-num">${i < 9 ? i + 1 : ''}</span>
         <img class="alternatab-favicon" src="${t.favIconUrl || ''}"
              onerror="this.style.display='none'" />
         <div class="alternatab-meta">
-          <span class="alternatab-title">${escapeHtml(t.title)}</span>
-          <span class="alternatab-url">${escapeHtml(getDomain(t.url))}</span>
+          <span class="alternatab-title">${highlightMatch(escapeHtml(t.title))}</span>
+          <span class="alternatab-url">${highlightMatch(escapeHtml(shiftHeld ? t.url : getDomain(t.url)))}</span>
         </div>
         <span class="alternatab-icons">
           ${t.pinned ? '<span title="Pinned">📌</span>' : ''}
@@ -346,6 +346,26 @@
     } catch {
       return url;
     }
+  }
+
+  // Highlight matching characters in search
+  function highlightMatch(text) {
+    if (!filter) return text;
+
+    let result = '';
+    let qi = 0;
+    const query = filter.toLowerCase();
+    const lower = text.toLowerCase();
+
+    for (let i = 0; i < text.length; i++) {
+      if (qi < query.length && lower[i] === query[qi]) {
+        result += `<mark>${text[i]}</mark>`;
+        qi++;
+      } else {
+        result += text[i];
+      }
+    }
+    return result;
   }
 
   // Listen for messages
