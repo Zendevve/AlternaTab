@@ -81,14 +81,51 @@
   flex-shrink: 0;
 }
 
+/* Number indicator (1-9) */
+.alternatab-num {
+  width: 16px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.alternatab-item:hover .alternatab-num,
+.alternatab-item.selected .alternatab-num {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Meta container */
+.alternatab-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 /* Title */
 .alternatab-title {
-  flex: 1;
   color: #fff;
   font-size: 13px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* URL - hidden by default, shown on hover */
+.alternatab-url {
+  display: none;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.alternatab-item:hover .alternatab-url,
+.alternatab-item.selected .alternatab-url {
+  display: block;
 }
 
 /* Icons */

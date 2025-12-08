@@ -74,12 +74,22 @@
     document.removeEventListener('keydown', handleKey);
   }
 
+  // Fuzzy match: 'gml' matches 'Gmail'
+  function fuzzyMatch(text, query) {
+    const lower = text.toLowerCase();
+    let qi = 0;
+    for (let i = 0; i < lower.length && qi < query.length; i++) {
+      if (lower[i] === query[qi]) qi++;
+    }
+    return qi === query.length;
+  }
+
   // Apply filter and render
   function applyFilter() {
     if (filter) {
       filtered = tabs.filter(t =>
-        t.title.toLowerCase().includes(filter) ||
-        t.url.toLowerCase().includes(filter)
+        fuzzyMatch(t.title, filter) ||
+        fuzzyMatch(t.url, filter)
       );
     } else {
       filtered = tabs;
@@ -105,9 +115,13 @@
     list.innerHTML = filtered.map((t, i) => `
       <div class="alternatab-item ${i === selected ? 'selected' : ''} ${t.active ? 'active' : ''}"
            data-index="${i}">
+        <span class="alternatab-num">${i < 9 ? i + 1 : ''}</span>
         <img class="alternatab-favicon" src="${t.favIconUrl || ''}"
              onerror="this.style.display='none'" />
-        <span class="alternatab-title">${escapeHtml(t.title)}</span>
+        <div class="alternatab-meta">
+          <span class="alternatab-title">${escapeHtml(t.title)}</span>
+          <span class="alternatab-url">${escapeHtml(getDomain(t.url))}</span>
+        </div>
         <span class="alternatab-icons">
           ${t.pinned ? '<span title="Pinned">📌</span>' : ''}
           ${t.audible && !t.muted ? '<span title="Playing">🔊</span>' : ''}
@@ -136,6 +150,16 @@
   // Keyboard handler
   function handleKey(e) {
     if (!visible) return;
+
+    // Number keys 1-9 for quick switch
+    if (!e.ctrlKey && !e.altKey && !e.metaKey && e.key >= '1' && e.key <= '9') {
+      const index = parseInt(e.key) - 1;
+      if (index < filtered.length) {
+        e.preventDefault();
+        activateTab(index);
+      }
+      return;
+    }
 
     switch (e.key) {
       case 'ArrowDown':
@@ -259,6 +283,15 @@
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+  }
+
+  // Extract domain from URL
+  function getDomain(url) {
+    try {
+      return new URL(url).hostname.replace(/^www\./, '');
+    } catch {
+      return url;
+    }
   }
 
   // Listen for messages
