@@ -1,5 +1,5 @@
 // content.js
-(function() {
+(function () {
   if (window.__alternaTabInjected) return;
   window.__alternaTabInjected = true;
 
@@ -15,6 +15,7 @@
     compactStorageKey: 'alternaTab.compact',
     statusDisplayMs: 4500,
     errorDisplayMs: 6500,
+    crossWindowEnabled: true,
     domainColors: {
       'github.com': '#1f6feb',
       'youtube.com': '#ff4e45',
@@ -60,6 +61,8 @@
   let filterText = '';
   let totalTabCount = 0;
   let lastRenderedTabIds = [];
+  let crossWindowEnabled = false; // NEW: Track if cross-window mode is active
+  let keyListenerAttached = false; // NEW: Track listener state for memory leak fix
   const pendingToasts = [];
 
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
@@ -116,7 +119,8 @@
     overlayRoot.addEventListener('click', (e) => {
       if (e.target === overlayRoot) hideOverlay();
     });
-    document.addEventListener('keydown', globalKeyHandler, true);
+    // NOTE: keydown listener is now added in showOverlay() and removed in hideOverlay()
+    // to prevent memory leaks
   };
 
   const buildBadges = (tab) => {
@@ -207,10 +211,11 @@
     highlight(selectedIndex);
   };
 
-  const showOverlay = (tabs) => {
+  const showOverlay = (tabs, options = {}) => {
     if (!overlayRoot) createOverlay();
     allTabs = Array.isArray(tabs) ? tabs.slice() : [];
     totalTabCount = allTabs.length;
+    crossWindowEnabled = !!options.crossWindowEnabled; // NEW: Store cross-window state
     resetSearchState({ hideWrapper: true, resetFilter: true });
     overlayRoot.classList.remove('fading');
     applyFilter();
@@ -225,6 +230,11 @@
     overlayRoot.classList.remove('loading');
     flushPendingToasts();
     if (tabItems.length > 0) clearStatus();
+    // FIX: Attach keyboard listener only when showing (prevents memory leak)
+    if (!keyListenerAttached) {
+      document.addEventListener('keydown', globalKeyHandler, true);
+      keyListenerAttached = true;
+    }
     focusOverlay();
   };
 
@@ -380,7 +390,7 @@
     searchDebounce = setTimeout(() => {
       searchDebounce = null;
       setFilterText(value);
-    }, 140);
+    }, 80); // Reduced from 140ms for snappier feel
   }
 
   function onSearchKeyDown(event) {
@@ -464,7 +474,7 @@
       finalizeHide();
     } else {
       overlayRoot.addEventListener('transitionend', finalizeHide);
-      hideTimer = setTimeout(finalizeHide, 220); // fallback in case transition doesn't fire
+      hideTimer = setTimeout(finalizeHide, 220);
     }
     visible = false;
     loading = false;
@@ -472,6 +482,11 @@
     loadToken++;
     if (toastStack) {
       toastStack.innerHTML = '';
+    }
+    // FIX: Remove keyboard listener to prevent memory leak
+    if (keyListenerAttached) {
+      document.removeEventListener('keydown', globalKeyHandler, true);
+      keyListenerAttached = false;
     }
   };
 
@@ -504,7 +519,7 @@
     overlayRoot.classList.add('loading');
     visible = true;
     loading = true;
-    showStatus('Loading tabs…', {persistent: true});
+    showStatus('Loading tabs…', { persistent: true });
   };
 
   const highlight = (index) => {
@@ -514,7 +529,7 @@
     });
     // Ensure selected item visible
     const sel = overlayRoot.querySelector('.alterna-item.selected');
-    if (sel) sel.scrollIntoView({block:'center', behavior:'smooth'});
+    if (sel) sel.scrollIntoView({ block: 'center', behavior: 'smooth' });
   };
 
   function getItemElement(index) {
@@ -571,7 +586,12 @@
     const element = getItemElement(index);
     if (element) element.classList.add('activating');
     showStatus(`Switching to "${friendlyTitle}"…`, { persistent: true });
-    const response = await safeSendMessage({ type: MESSAGE_TYPES.ACTIVATE_TAB, tabId: item.id }, {
+    // Include windowId for cross-window tab switching
+    const response = await safeSendMessage({
+      type: MESSAGE_TYPES.ACTIVATE_TAB,
+      tabId: item.id,
+      windowId: item.windowId // NEW: Pass window ID for cross-window support
+    }, {
       errorMessage: 'Unable to activate the selected tab.'
     });
     if (element) element.classList.remove('activating');
@@ -706,7 +726,8 @@
         const tabs = Array.isArray(msg.tabs) ? msg.tabs : [];
         setTimeout(() => {
           if (loadToken !== token || !visible) return;
-          showOverlay(tabs);
+          // Pass crossWindowEnabled from background
+          showOverlay(tabs, { crossWindowEnabled: !!msg.crossWindowEnabled });
         }, 0);
       }
     },
@@ -746,7 +767,7 @@
   function persistCompactPreference() {
     try {
       localStorage.setItem(runtimeConfig.compactStorageKey, compactMode ? '1' : '0');
-    } catch (_) {}
+    } catch (_) { }
   }
 
   function loadCompactPreference() {
@@ -792,12 +813,12 @@
   function escapeHtml(s) {
     if (!s) return '';
     return s.replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
   }
   function shorten(s, n) {
     if (!s) return '';
-    return s.length > n ? s.slice(0, n-1) + '…' : s;
+    return s.length > n ? s.slice(0, n - 1) + '…' : s;
   }
 
   function extractDomain(url) {
@@ -992,11 +1013,11 @@
   function mergeConfig(current, overrides) {
     const base = current && typeof current === 'object'
       ? {
-          compactStorageKey: current.compactStorageKey || DEFAULT_CONFIG.compactStorageKey,
-          statusDisplayMs: current.statusDisplayMs || DEFAULT_CONFIG.statusDisplayMs,
-          errorDisplayMs: current.errorDisplayMs || DEFAULT_CONFIG.errorDisplayMs,
-          domainColors: { ...DEFAULT_CONFIG.domainColors, ...(current.domainColors || {}) }
-        }
+        compactStorageKey: current.compactStorageKey || DEFAULT_CONFIG.compactStorageKey,
+        statusDisplayMs: current.statusDisplayMs || DEFAULT_CONFIG.statusDisplayMs,
+        errorDisplayMs: current.errorDisplayMs || DEFAULT_CONFIG.errorDisplayMs,
+        domainColors: { ...DEFAULT_CONFIG.domainColors, ...(current.domainColors || {}) }
+      }
       : cloneDefaultConfig();
     if (!overrides || typeof overrides !== 'object') return base;
     if (typeof overrides.compactStorageKey === 'string' && overrides.compactStorageKey.trim()) {

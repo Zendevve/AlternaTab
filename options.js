@@ -1,12 +1,10 @@
-const MESSAGE_TYPES = {
-  REQUEST_CONFIG: 'REQUEST_CONFIG',
-  UPDATE_CONFIG: 'UPDATE_CONFIG',
-  RESET_CONFIG: 'RESET_CONFIG',
-};
+import { MESSAGE_TYPES } from './src/shared/constants.js';
+import { normalizeDomainKey } from './src/shared/utils.js';
 
 const form = document.querySelector('#settings-form');
 const statusDurationInput = document.querySelector('#status-duration');
 const errorDurationInput = document.querySelector('#error-duration');
+const crossWindowToggle = document.querySelector('#cross-window-toggle'); // NEW
 const addDomainBtn = document.querySelector('#add-domain');
 const resetBtn = document.querySelector('#reset');
 const domainBody = document.querySelector('#domain-body');
@@ -22,13 +20,16 @@ init();
 
 async function init() {
   renderDomainRows({});
-  setSaveState('Loading…');
+  setSaveState('Loading\u2026');
   await loadConfig();
   addDomainBtn.addEventListener('click', handleAddDomain);
   domainBody.addEventListener('click', handleDomainClick);
   form.addEventListener('submit', handleSave);
   resetBtn.addEventListener('click', handleReset);
   domainBody.addEventListener('input', handleDomainInputChange);
+  if (crossWindowToggle) {
+    crossWindowToggle.addEventListener('change', () => setSaveState('Unsaved changes'));
+  }
   if (domainWrapper) {
     domainWrapper.addEventListener('pointerenter', handleWrapperInteraction);
     domainWrapper.addEventListener('pointerleave', handleWrapperLeave);
@@ -37,27 +38,15 @@ async function init() {
   }
 }
 
-function normalizeDomain(input) {
-  if (!input) return '';
-  let value = input.trim().toLowerCase();
-  if (!value) return '';
-  if (!value.includes('://')) {
-    value = `https://${value}`;
-  }
-  try {
-    const { hostname } = new URL(value);
-    if (!hostname) return '';
-    return hostname.replace(/^www\./, '');
-  } catch (_) {
-    return '';
-  }
-}
+// Use shared utility for domain normalization
+const normalizeDomain = normalizeDomainKey;
 
 function mergeConfigObjects(base, overrides) {
   const merged = { ...base };
   if (!overrides || typeof overrides !== 'object') return merged;
   if (typeof overrides.statusDisplayMs === 'number') merged.statusDisplayMs = overrides.statusDisplayMs;
   if (typeof overrides.errorDisplayMs === 'number') merged.errorDisplayMs = overrides.errorDisplayMs;
+  if (typeof overrides.crossWindowEnabled === 'boolean') merged.crossWindowEnabled = overrides.crossWindowEnabled;
   if (overrides.domainColors && typeof overrides.domainColors === 'object') {
     merged.domainColors = { ...merged.domainColors, ...overrides.domainColors };
   }
@@ -82,6 +71,9 @@ async function loadConfig() {
 function populateForm(config) {
   statusDurationInput.value = config.statusDisplayMs ?? 4500;
   errorDurationInput.value = config.errorDisplayMs ?? 6500;
+  if (crossWindowToggle) {
+    crossWindowToggle.checked = config.crossWindowEnabled !== false;
+  }
   renderDomainRows(config.domainColors || {});
   reflectVersion();
   setSaveState('All changes saved');
@@ -118,7 +110,7 @@ function addDomainRow(domain = '', color = '#4d6bff') {
     </td>
   `;
   domainBody.appendChild(row);
-  
+
   // Sync color indicator with color picker
   const colorInput = row.querySelector('.color-input');
   const indicator = row.querySelector('.domain-color-indicator');
@@ -127,7 +119,7 @@ function addDomainRow(domain = '', color = '#4d6bff') {
       indicator.style.background = e.target.value;
     });
   }
-  
+
   updateDomainEmptyState();
 }
 
@@ -243,6 +235,7 @@ function buildPayload() {
   return {
     statusDisplayMs: statusMs,
     errorDisplayMs: errorMs,
+    crossWindowEnabled: crossWindowToggle ? crossWindowToggle.checked : true, // NEW
     domainColors
   };
 }

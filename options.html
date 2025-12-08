@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AlternaTab Options</title>
   <link rel="stylesheet" href="options.css" />
 </head>
+
 <body>
   <main>
     <header class="page-header">
@@ -21,7 +23,8 @@
 
     <section class="card">
       <h2>Display Settings</h2>
-      <p class="section-intro">Adjust how long feedback messages stay visible and curate the accent colors you see in the overlay.</p>
+      <p class="section-intro">Adjust how long feedback messages stay visible and curate the accent colors you see in
+        the overlay.</p>
       <form id="settings-form">
         <div class="field-grid">
           <div class="field-group">
@@ -37,11 +40,20 @@
           </div>
         </div>
 
+        <div class="field-group toggle-group">
+          <label class="toggle-label">
+            <input type="checkbox" id="cross-window-toggle" name="crossWindowEnabled" checked />
+            <span class="toggle-text">Enable Cross-Window Tabs</span>
+          </label>
+          <p class="hint">When enabled, the overlay shows tabs from all browser windows, not just the current one.</p>
+        </div>
+
         <div class="field-group domain-group">
           <label>Domain Highlight Colors</label>
           <p class="hint">Override accent colors for domains you visit often. Leave blank to keep automatic colors.</p>
           <div class="domain-table-wrapper" id="domain-table-wrapper">
-            <p id="domain-empty" class="empty-state" hidden>No custom domains yet. Add one to override highlight colors.</p>
+            <p id="domain-empty" class="empty-state" hidden>No custom domains yet. Add one to override highlight colors.
+            </p>
             <div class="domain-table-scroll" role="region" aria-label="Custom domain colors">
               <table id="domain-table">
                 <thead>
@@ -66,7 +78,8 @@
     </section>
 
     <footer class="page-footer">
-      <p>Looking for more controls? Visit the <a href="https://github.com/" target="_blank" rel="noopener noreferrer">project repository</a> or open an issue with feedback.</p>
+      <p>Looking for more controls? Visit the <a href="https://github.com/Zendevve/atlernatab" target="_blank"
+          rel="noopener noreferrer">project repository</a> or open an issue with feedback.</p>
     </footer>
 
     <div id="toast" role="status" aria-live="polite"></div>
@@ -74,4 +87,5 @@
 
   <script src="options.js" type="module"></script>
 </body>
+
 </html>
