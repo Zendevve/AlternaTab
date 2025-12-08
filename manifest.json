@@ -1,30 +1,14 @@
 {
   "manifest_version": 3,
   "name": "AlternaTab",
-  "description": "Alt+Tab-like overlay for Chrome tabs (Alt+Q). Preview, navigate, and switch fast.",
-  "version": "0.4.1",
-  "version_name": "0.4.1-dev",
+  "version": "2.0.0",
+  "description": "Fast tab switcher with Alt+Q",
   "permissions": [
     "tabs",
-    "activeTab",
-    "scripting",
     "storage"
   ],
-  "host_permissions": [
-    "<all_urls>"
-  ],
   "background": {
-    "service_worker": "background.js",
-    "type": "module"
-  },
-  "options_page": "options.html",
-  "commands": {
-    "toggle-overlay": {
-      "suggested_key": {
-        "default": "Alt+Q"
-      },
-      "description": "Toggle AlternaTab overlay"
-    }
+    "service_worker": "background.js"
   },
   "content_scripts": [
     {
@@ -40,6 +24,15 @@
       "run_at": "document_idle"
     }
   ],
+  "commands": {
+    "toggle-overlay": {
+      "suggested_key": {
+        "default": "Alt+Q"
+      },
+      "description": "Toggle tab switcher"
+    }
+  },
+  "options_page": "options.html",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
