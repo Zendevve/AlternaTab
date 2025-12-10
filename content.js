@@ -11,7 +11,11 @@
     CLOSE_DUPLICATES: 'CLOSE_DUPLICATES',
     SAVE_LAST_POSITION: 'SAVE_LAST_POSITION',
     GET_LAST_POSITION: 'GET_LAST_POSITION',
-    TOGGLE_FAVORITE: 'TOGGLE_FAVORITE'
+    TOGGLE_FAVORITE: 'TOGGLE_FAVORITE',
+    // New features
+    REOPEN_LAST_CLOSED: 'REOPEN_LAST_CLOSED',
+    TOGGLE_MUTE: 'TOGGLE_MUTE',
+    CLOSE_TABS: 'CLOSE_TABS'
   };
 
   let overlay = null;
@@ -22,6 +26,7 @@
   let filter = '';
   let config = {};
   let shiftHeld = false;  // Track Shift key for URL preview
+  let selectedSet = new Set();  // Multi-select: track selected tab IDs
 
   // Create overlay DOM
   function createOverlay() {
@@ -115,6 +120,7 @@
 
     visible = false;
     shiftHeld = false;
+    selectedSet.clear();  // Clear multi-select state
     document.removeEventListener('keydown', handleKey);
     document.removeEventListener('keydown', handleShiftDown);
     document.removeEventListener('keyup', handleShiftUp);
@@ -159,10 +165,10 @@
     empty.style.display = 'none';
 
     list.innerHTML = filtered.map((t, i) => `
-      <div class="alternatab-item ${i === selected ? 'selected' : ''} ${t.active ? 'active' : ''} ${t.isFavorite ? 'favorite' : ''}"
+      <div class="alternatab-item ${i === selected ? 'selected' : ''} ${t.active ? 'active' : ''} ${t.isFavorite ? 'favorite' : ''} ${selectedSet.has(t.id) ? 'multi-selected' : ''}"
            data-index="${i}" data-id="${t.id}" data-url="${escapeHtml(t.url)}">
         <span class="alternatab-color" style="background: ${t.domainColor}"></span>
-        <span class="alternatab-num">${i < 9 ? i + 1 : ''}</span>
+        ${selectedSet.size > 0 ? `<input type="checkbox" class="alternatab-checkbox" ${selectedSet.has(t.id) ? 'checked' : ''} />` : `<span class="alternatab-num">${i < 9 ? i + 1 : ''}</span>`}
         <img class="alternatab-favicon" src="${t.favIconUrl || ''}"
              onerror="this.style.display='none'" />
         <div class="alternatab-meta">
@@ -172,18 +178,57 @@
         <span class="alternatab-icons">
           <span class="alternatab-star" title="Toggle Favorite">${t.isFavorite ? '★' : '☆'}</span>
           ${t.pinned ? '<span title="Pinned">📌</span>' : ''}
-          ${t.audible && !t.muted ? '<span title="Playing">🔊</span>' : ''}
-          ${t.muted ? '<span title="Muted">🔇</span>' : ''}
+          ${t.audible && !t.muted ? '<span class="alternatab-audio" title="Playing - Press M to mute">🔊</span>' : ''}
+          ${t.muted ? '<span class="alternatab-audio" title="Muted - Press M to unmute">🔇</span>' : ''}
         </span>
       </div>
     `).join('');
 
+    // Show selection count if multi-selecting
+    let selectionBadge = overlay.querySelector('.alternatab-selection-badge');
+    if (selectedSet.size > 0) {
+      if (!selectionBadge) {
+        selectionBadge = document.createElement('div');
+        selectionBadge.className = 'alternatab-selection-badge';
+        overlay.querySelector('.alternatab-shell').appendChild(selectionBadge);
+      }
+      selectionBadge.textContent = `${selectedSet.size} selected — Delete to close, Esc to clear`;
+      selectionBadge.style.display = 'block';
+    } else if (selectionBadge) {
+      selectionBadge.style.display = 'none';
+    }
+
     // Click handlers
     list.querySelectorAll('.alternatab-item').forEach(el => {
       el.addEventListener('click', (e) => {
-        // Don't activate if clicking the star
+        const index = parseInt(el.dataset.index);
+        const tabId = parseInt(el.dataset.id);
+
+        // Don't activate if clicking the star or checkbox
         if (e.target.classList.contains('alternatab-star')) return;
-        activateTab(parseInt(el.dataset.index));
+        if (e.target.classList.contains('alternatab-checkbox')) {
+          // Toggle multi-select
+          if (selectedSet.has(tabId)) {
+            selectedSet.delete(tabId);
+          } else {
+            selectedSet.add(tabId);
+          }
+          render();
+          return;
+        }
+
+        // Ctrl+Click for multi-select
+        if (e.ctrlKey) {
+          if (selectedSet.has(tabId)) {
+            selectedSet.delete(tabId);
+          } else {
+            selectedSet.add(tabId);
+          }
+          render();
+          return;
+        }
+
+        activateTab(index);
       });
       el.addEventListener('auxclick', (e) => {
         if (e.button === 1) closeTab(parseInt(el.dataset.index));
@@ -203,6 +248,15 @@
       });
     });
 
+    // Audio icon click handlers for mute toggle
+    list.querySelectorAll('.alternatab-audio').forEach(icon => {
+      icon.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const item = icon.closest('.alternatab-item');
+        toggleMute(parseInt(item.dataset.index));
+      });
+    });
+
     // Scroll selected into view
     const selectedEl = list.querySelector('.selected');
     if (selectedEl) selectedEl.scrollIntoView({ block: 'nearest' });
@@ -212,8 +266,8 @@
   function handleKey(e) {
     if (!visible) return;
 
-    // Number keys 1-9 for quick switch
-    if (!e.ctrlKey && !e.altKey && !e.metaKey && e.key >= '1' && e.key <= '9') {
+    // Number keys 1-9 for quick switch (only when not multi-selecting)
+    if (selectedSet.size === 0 && !e.ctrlKey && !e.altKey && !e.metaKey && e.key >= '1' && e.key <= '9') {
       const index = parseInt(e.key) - 1;
       if (index < filtered.length) {
         e.preventDefault();
@@ -242,18 +296,33 @@
 
       case 'Escape':
         e.preventDefault();
-        hide();
+        // If multi-selecting, clear selection first
+        if (selectedSet.size > 0) {
+          selectedSet.clear();
+          render();
+        } else {
+          hide();
+        }
         break;
 
       case 'Delete':
         e.preventDefault();
-        closeTab(selected);
+        // If multi-selecting, close all selected
+        if (selectedSet.size > 0) {
+          closeMultipleTabs();
+        } else {
+          closeTab(selected);
+        }
         break;
 
       case 'w':
         if (e.ctrlKey) {
           e.preventDefault();
-          closeTab(selected);
+          if (selectedSet.size > 0) {
+            closeMultipleTabs();
+          } else {
+            closeTab(selected);
+          }
         }
         break;
 
@@ -270,6 +339,31 @@
         if (e.ctrlKey) {
           e.preventDefault();
           closeDuplicates();
+        }
+        break;
+
+      // NEW: Reopen last closed tab
+      case 'z':
+        if (!e.ctrlKey && !e.altKey) {
+          e.preventDefault();
+          reopenLastClosed();
+        }
+        break;
+
+      // NEW: Toggle mute on selected tab
+      case 'm':
+        if (!e.ctrlKey && !e.altKey) {
+          e.preventDefault();
+          toggleMute(selected);
+        }
+        break;
+
+      // NEW: Select all tabs (Ctrl+A)
+      case 'a':
+        if (e.ctrlKey) {
+          e.preventDefault();
+          filtered.forEach(t => selectedSet.add(t.id));
+          render();
         }
         break;
     }
@@ -362,6 +456,62 @@
       }
     } catch (err) {
       console.error('Failed to close duplicates:', err);
+    }
+  }
+
+  // NEW: Reopen last closed tab
+  async function reopenLastClosed() {
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: MESSAGE_TYPES.REOPEN_LAST_CLOSED
+      });
+
+      if (response.ok) {
+        // Close overlay - user will likely want to use the reopened tab
+        hide();
+      }
+    } catch (err) {
+      console.error('Failed to reopen last closed:', err);
+    }
+  }
+
+  // NEW: Toggle mute on tab
+  async function toggleMute(index) {
+    const tab = filtered[index];
+    if (!tab) return;
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: MESSAGE_TYPES.TOGGLE_MUTE,
+        tabId: tab.id
+      });
+
+      // Update local state
+      tab.muted = response.muted;
+      render();
+    } catch (err) {
+      console.error('Failed to toggle mute:', err);
+    }
+  }
+
+  // NEW: Close multiple selected tabs
+  async function closeMultipleTabs() {
+    if (selectedSet.size === 0) return;
+
+    try {
+      await chrome.runtime.sendMessage({
+        type: MESSAGE_TYPES.CLOSE_TABS,
+        tabIds: [...selectedSet]
+      });
+
+      // Remove from lists
+      tabs = tabs.filter(t => !selectedSet.has(t.id));
+      selectedSet.clear();
+      applyFilter();
+
+      if (filtered.length === 0) hide();
+    } catch (err) {
+      console.error('Failed to close multiple tabs:', err);
     }
   }
 

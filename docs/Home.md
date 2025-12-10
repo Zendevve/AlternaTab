@@ -4,6 +4,9 @@ Welcome to the AlternaTab documentation. This documentation follows the [MCAF Gu
 
 ## Quick Links
 
+### Core
+- [Design Principles](DESIGN_PRINCIPLES.md) — The Five Pillars guiding all development
+
 ### Features
 - [Tab Overlay](Features/tab-overlay.md) — Core Alt+Q overlay functionality
 - [Settings](Features/settings.md) — Options page and configuration

@@ -27,6 +27,16 @@ options.js       ← Settings page (domain colors, preferences)
 chrome.storage   ← Persistent configuration
 ```
 
+### Design Philosophy
+
+All development adheres to the [Five Pillars](docs/DESIGN_PRINCIPLES.md):
+
+1. **Invisible Interface** — Content-first, zero visual noise
+2. **Radical Efficiency** — Instant, lightweight, space-conscious
+3. **Ergonomic Intelligence** — Keyboard-first, shortcut-driven
+4. **Complexity on Demand** — Simple surface, deep power
+5. **User Sovereignty** — Customizable, transparent, private
+
 ---
 
 ## Commands
@@ -88,6 +98,21 @@ Chrome extensions have limited automated testing options. Manual verification is
    - Open options → Settings load correctly
    - Change domain color → Saves and reflects in overlay
    - Reset → Restores defaults
+
+5. **Recently Closed (Z)**
+   - Close a tab with Delete → Press Z → Tab reopens
+   - Verify multiple closes track correctly
+
+6. **Multi-Select**
+   - Ctrl+Click tabs → Checkboxes appear, items highlight
+   - Ctrl+A → All tabs selected
+   - Delete → All selected tabs close
+   - Escape → Clears selection
+
+7. **Audio Control (M)**
+   - Play video in a tab → 🔊 icon appears
+   - Press M → Tab mutes, icon changes to 🔇
+   - Press M again → Tab unmutes
 
 ### Before Merging
 

@@ -15,6 +15,9 @@
 | 🎨 **Domain Colors** | Visual grouping by site |
 | ⭐ **Favorites** | Pin tabs to top with `F` key |
 | 🧹 **Close Duplicates** | `Ctrl+D` to clean up |
+| 🔙 **Recently Closed** | `Z` to reopen last closed |
+| 📦 **Multi-Select** | `Ctrl+Click` for bulk actions |
+| 🔇 **Audio Control** | `M` to mute/unmute tabs |
 
 ## Installation
 
@@ -30,13 +33,17 @@
 |-----|--------|
 | `↑` `↓` | Navigate |
 | `Enter` | Switch to tab |
-| `Delete` | Close tab |
-| `Escape` | Hide overlay |
+| `Delete` | Close tab (or all selected) |
+| `Escape` | Clear selection / Hide overlay |
 | `1-9` | Quick switch |
 | `Shift` | Show full URLs |
 | `F` | Toggle favorite |
+| `Z` | Reopen last closed tab |
+| `M` | Mute/unmute selected tab |
+| `Ctrl+Click` | Multi-select tabs |
+| `Ctrl+A` | Select all tabs |
 | `Ctrl+D` | Close all duplicates |
-| `Ctrl+W` | Close selected tab |
+| `Ctrl+W` | Close selected tab(s) |
 
 ## Settings
 
@@ -48,6 +55,16 @@ Right-click extension icon → **Options**
 
 ## Philosophy
 
-> **Invisible Interface** — The best UI is one you forget is there.
+> **The best tool is one you forget you're using.**
 
-AlternaTab is designed to be minimal, instant, and keyboard-first.
+AlternaTab follows the **Five Pillars** of software design:
+
+| Pillar | Principle |
+|--------|----------|
+| 🎨 Invisible Interface | Content-first, zero visual noise |
+| ⚡ Radical Efficiency | Instant, lightweight, respects resources |
+| 🎯 Ergonomic Intelligence | Keyboard-first, shortcut-driven |
+| 🔮 Complexity on Demand | Simple surface, deep power |
+| 🔐 User Sovereignty | Customizable, transparent, private |
+
+See [docs/DESIGN_PRINCIPLES.md](docs/DESIGN_PRINCIPLES.md) for the full philosophy.

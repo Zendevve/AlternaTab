@@ -11,7 +11,14 @@ const MESSAGE_TYPES = {
   SAVE_LAST_POSITION: 'SAVE_LAST_POSITION',
   GET_LAST_POSITION: 'GET_LAST_POSITION',
   TOGGLE_FAVORITE: 'TOGGLE_FAVORITE',
-  GET_FAVORITES: 'GET_FAVORITES'
+  GET_FAVORITES: 'GET_FAVORITES',
+  // New: Recently Closed
+  REOPEN_LAST_CLOSED: 'REOPEN_LAST_CLOSED',
+  GET_RECENTLY_CLOSED: 'GET_RECENTLY_CLOSED',
+  // New: Audio Control
+  TOGGLE_MUTE: 'TOGGLE_MUTE',
+  // New: Multi-Select
+  CLOSE_TABS: 'CLOSE_TABS'
 };
 
 // Domain colors for visual grouping
@@ -47,6 +54,8 @@ const DEFAULT_CONFIG = {
 // Session storage
 let lastPosition = 0;
 let favorites = new Set();
+let recentlyClosed = []; // Track recently closed tabs (max 10)
+const MAX_RECENTLY_CLOSED = 10;
 
 // Load favorites from storage
 async function loadFavorites() {
@@ -154,7 +163,16 @@ chrome.commands.onCommand.addListener(async (command) => {
   if (command !== 'toggle-overlay') return;
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.id || tab.url?.startsWith('chrome://')) return;
+  if (!tab?.id) return;
+
+  // Skip restricted pages where we can't inject
+  if (tab.url?.startsWith('chrome://') ||
+    tab.url?.startsWith('chrome-extension://') ||
+    tab.url?.startsWith('edge://') ||
+    tab.url?.startsWith('about:') ||
+    tab.url?.startsWith('file://')) {
+    return;
+  }
 
   const config = await getConfig();
   const tabs = await getTabs(config.crossWindow);
@@ -166,21 +184,26 @@ chrome.commands.onCommand.addListener(async (command) => {
       config
     });
   } catch {
-    // Content script not loaded, inject it
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      files: ['content.js']
-    });
-    await chrome.scripting.insertCSS({
-      target: { tabId: tab.id },
-      files: ['overlay.css']
-    });
-    // Retry
-    await chrome.tabs.sendMessage(tab.id, {
-      type: MESSAGE_TYPES.GET_TABS,
-      tabs,
-      config
-    });
+    // Content script not loaded, try to inject it
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['content.js']
+      });
+      await chrome.scripting.insertCSS({
+        target: { tabId: tab.id },
+        files: ['overlay.css']
+      });
+      // Retry
+      await chrome.tabs.sendMessage(tab.id, {
+        type: MESSAGE_TYPES.GET_TABS,
+        tabs,
+        config
+      });
+    } catch (err) {
+      // Page doesn't allow scripting (e.g., Chrome Web Store, some restricted sites)
+      console.log('AlternaTab: Cannot inject on this page:', err.message);
+    }
   }
 });
 
@@ -190,15 +213,86 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     switch (msg.type) {
       case MESSAGE_TYPES.ACTIVATE_TAB: {
         const { tabId, windowId } = msg;
-        if (windowId) await chrome.windows.update(windowId, { focused: true });
-        await chrome.tabs.update(tabId, { active: true });
-        sendResponse({ ok: true });
+        try {
+          if (windowId) await chrome.windows.update(windowId, { focused: true });
+          await chrome.tabs.update(tabId, { active: true });
+          sendResponse({ ok: true });
+        } catch (err) {
+          sendResponse({ ok: false, error: err.message });
+        }
         break;
       }
 
       case MESSAGE_TYPES.CLOSE_TAB: {
+        // Track before closing
+        try {
+          const tab = await chrome.tabs.get(msg.tabId);
+          if (tab && tab.url && !tab.url.startsWith('chrome://')) {
+            recentlyClosed.unshift({
+              url: tab.url,
+              title: tab.title,
+              favIconUrl: tab.favIconUrl,
+              closedAt: Date.now()
+            });
+            if (recentlyClosed.length > MAX_RECENTLY_CLOSED) {
+              recentlyClosed.pop();
+            }
+          }
+        } catch { /* tab already gone */ }
         await chrome.tabs.remove(msg.tabId);
         sendResponse({ ok: true });
+        break;
+      }
+
+      // New: Bulk close tabs (Multi-Select)
+      case MESSAGE_TYPES.CLOSE_TABS: {
+        const { tabIds } = msg;
+        // Track before closing
+        for (const tabId of tabIds) {
+          try {
+            const tab = await chrome.tabs.get(tabId);
+            if (tab && tab.url && !tab.url.startsWith('chrome://')) {
+              recentlyClosed.unshift({
+                url: tab.url,
+                title: tab.title,
+                favIconUrl: tab.favIconUrl,
+                closedAt: Date.now()
+              });
+            }
+          } catch { /* tab already gone */ }
+        }
+        // Trim to max
+        recentlyClosed = recentlyClosed.slice(0, MAX_RECENTLY_CLOSED);
+        await chrome.tabs.remove(tabIds);
+        sendResponse({ ok: true, closed: tabIds.length });
+        break;
+      }
+
+      // New: Reopen last closed tab
+      case MESSAGE_TYPES.REOPEN_LAST_CLOSED: {
+        if (recentlyClosed.length === 0) {
+          sendResponse({ ok: false, error: 'No recently closed tabs' });
+          break;
+        }
+        const tabInfo = recentlyClosed.shift();
+        const newTab = await chrome.tabs.create({ url: tabInfo.url });
+        sendResponse({ ok: true, tab: newTab });
+        break;
+      }
+
+      // New: Get recently closed list
+      case MESSAGE_TYPES.GET_RECENTLY_CLOSED: {
+        sendResponse({ tabs: recentlyClosed });
+        break;
+      }
+
+      // New: Toggle mute on tab
+      case MESSAGE_TYPES.TOGGLE_MUTE: {
+        const { tabId } = msg;
+        const tab = await chrome.tabs.get(tabId);
+        const muted = !tab.mutedInfo?.muted;
+        await chrome.tabs.update(tabId, { muted });
+        sendResponse({ ok: true, muted });
         break;
       }
 

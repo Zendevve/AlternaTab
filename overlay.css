@@ -282,3 +282,43 @@
   background: rgba(255, 255, 255, 0.2);
   border-radius: 3px;
 }
+
+/* Multi-select checkbox */
+.alternatab-checkbox {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--at-accent);
+  flex-shrink: 0;
+}
+
+/* Multi-selected item highlight */
+.alternatab-item.multi-selected {
+  background: rgba(74, 158, 255, 0.15);
+  border-left: 2px solid var(--at-accent);
+}
+
+.alternatab-item.multi-selected:hover {
+  background: rgba(74, 158, 255, 0.2);
+}
+
+/* Selection badge */
+.alternatab-selection-badge {
+  padding: 8px 14px;
+  background: var(--at-accent);
+  color: white;
+  font-size: 12px;
+  text-align: center;
+  border-top: 1px solid var(--at-border);
+}
+
+/* Audio icons - clickable */
+.alternatab-audio {
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.alternatab-audio:hover {
+  transform: scale(1.2);
+}
