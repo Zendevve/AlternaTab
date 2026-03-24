@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
-import { RankedTabResult } from '../../shared/types';
+import { RankedItemResult } from '../../shared/types';
+import { formatDomain, formatPath } from '../lib/format';
 
 type Props = {
-  tab: RankedTabResult;
+  tab: RankedItemResult;
   selected: boolean;
   onClick: () => void;
 };
@@ -16,6 +17,8 @@ export function ResultItem({ tab, selected, onClick }: Props) {
     }
   }, [selected]);
 
+  const faviconSrc = tab.favIconUrl || `chrome-extension://${chrome.runtime.id}/_favicon/?pageUrl=${encodeURIComponent(tab.url)}&size=32`;
+
   return (
     <div
       ref={itemRef}
@@ -23,15 +26,12 @@ export function ResultItem({ tab, selected, onClick }: Props) {
       onClick={onClick}
     >
       <div className="result-icon-container">
-        {tab.favIconUrl ? (
-          <img src={tab.favIconUrl} className="result-icon" alt="" />
-        ) : (
-          <div className="result-icon-fallback" />
-        )}
+        <img src={faviconSrc} className="result-icon" alt="" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.removeAttribute('hidden'); }} />
+        <div className="result-icon-fallback" hidden />
       </div>
       <div className="result-details">
         <div className="result-title">{tab.title}</div>
-        <div className="result-url">{tab.host}{tab.path && tab.path !== '/' ? tab.path : ''}</div>
+        <div className="result-url">{formatDomain(tab.host)}{formatPath(tab.path)}</div>
       </div>
       <div className="result-badges">
         {tab.isCurrentTab && <span className="badge current-badge">Current</span>}

@@ -3,51 +3,60 @@
  * Uses discriminated unions for type-safe runtime communication
  */
 
-import { LauncherTab } from './types';
+import { RankedItemResult, LauncherItemType } from './types';
 
 // ============================================
 // Message Types (Discriminated Union)
 // ============================================
 
 export const MESSAGE_TYPES = {
-  GET_TABS: 'GET_TABS',
+  SEARCH_ASSETS: 'SEARCH_ASSETS',
   SWITCH_TAB: 'SWITCH_TAB',
   CLOSE_TAB: 'CLOSE_TAB',
   COPY_URL: 'COPY_URL',
+  TOGGLE_PIN_TAB: 'TOGGLE_PIN_TAB',
+  DUPLICATE_TAB: 'DUPLICATE_TAB',
+  TOGGLE_MUTE_TAB: 'TOGGLE_MUTE_TAB',
+  MOVE_TO_NEW_WINDOW: 'MOVE_TO_NEW_WINDOW',
 } as const;
 
 // ============================================
-// Response Types (Ok/Err pattern)
+// Response Types (Success/Failure pattern)
 // ============================================
 
-export type Ok<T> = {
+export type Success<T> = {
   ok: true;
   data: T;
 };
 
-export type Err = {
+export type Failure = {
   ok: false;
   error: string;
+  code?: string;
 };
 
-export type Response<T> = Ok<T> | Err;
+export type Response<T> = Success<T> | Failure;
 
 // Helper constructors
-export const ok = <T>(data: T): Ok<T> => ({ ok: true, data });
-export const err = (error: string): Err => ({ ok: false, error });
+export const success = <T>(data: T): Success<T> => ({ ok: true, data });
+export const failure = (error: string, code?: string): Failure => ({ ok: false, error, code });
 
 // ============================================
 // Request Types
 // ============================================
 
-export type GetTabsRequest = {
-  type: typeof MESSAGE_TYPES.GET_TABS;
+export type SearchAssetsRequest = {
+  type: typeof MESSAGE_TYPES.SEARCH_ASSETS;
+  query: string;
 };
 
 export type SwitchTabRequest = {
   type: typeof MESSAGE_TYPES.SWITCH_TAB;
   tabId: number;
   windowId: number;
+  url?: string;
+  itemType?: LauncherItemType;
+  sessionId?: string;
 };
 
 export type CloseTabRequest = {
@@ -60,26 +69,58 @@ export type CopyUrlRequest = {
   url: string;
 };
 
+export type TogglePinTabRequest = {
+  type: typeof MESSAGE_TYPES.TOGGLE_PIN_TAB;
+  tabId: number;
+};
+
+export type DuplicateTabRequest = {
+  type: typeof MESSAGE_TYPES.DUPLICATE_TAB;
+  tabId: number;
+};
+
+export type ToggleMuteTabRequest = {
+  type: typeof MESSAGE_TYPES.TOGGLE_MUTE_TAB;
+  tabId: number;
+};
+
+export type MoveToNewWindowRequest = {
+  type: typeof MESSAGE_TYPES.MOVE_TO_NEW_WINDOW;
+  tabId: number;
+};
+
 export type ExtensionMessage =
-  | GetTabsRequest
+  | SearchAssetsRequest
   | SwitchTabRequest
   | CloseTabRequest
-  | CopyUrlRequest;
+  | CopyUrlRequest
+  | TogglePinTabRequest
+  | DuplicateTabRequest
+  | ToggleMuteTabRequest
+  | MoveToNewWindowRequest;
 
 // ============================================
 // Response Types
 // ============================================
 
-export type GetTabsResponse = Response<{ tabs: LauncherTab[] }>;
+export type SearchAssetsResponse = Response<{ results: RankedItemResult[] }>;
 export type SwitchTabResponse = Response<{ success: boolean }>;
 export type CloseTabResponse = Response<{ success: boolean }>;
 export type CopyUrlResponse = Response<{ success: boolean }>;
+export type TogglePinTabResponse = Response<{ success: boolean, pinned: boolean }>;
+export type DuplicateTabResponse = Response<{ success: boolean }>;
+export type ToggleMuteTabResponse = Response<{ success: boolean, muted: boolean }>;
+export type MoveToNewWindowResponse = Response<{ success: boolean }>;
 
 export type ExtensionResponse =
-  | GetTabsResponse
+  | SearchAssetsResponse
   | SwitchTabResponse
   | CloseTabResponse
-  | CopyUrlResponse;
+  | CopyUrlResponse
+  | TogglePinTabResponse
+  | DuplicateTabResponse
+  | ToggleMuteTabResponse
+  | MoveToNewWindowResponse;
 
 // ============================================
 // Runtime Validation
@@ -96,11 +137,16 @@ export function validateMessage(message: unknown): message is ExtensionMessage {
   if (!msg.type || typeof msg.type !== 'string') return false;
 
   switch (msg.type) {
-    case MESSAGE_TYPES.GET_TABS:
-      return true;
+    case MESSAGE_TYPES.SEARCH_ASSETS:
+      return typeof msg.query === 'string';
     case MESSAGE_TYPES.SWITCH_TAB:
       return typeof msg.tabId === 'number' && typeof msg.windowId === 'number';
     case MESSAGE_TYPES.CLOSE_TAB:
+      return typeof msg.tabId === 'number';
+    case MESSAGE_TYPES.TOGGLE_PIN_TAB:
+    case MESSAGE_TYPES.DUPLICATE_TAB:
+    case MESSAGE_TYPES.TOGGLE_MUTE_TAB:
+    case MESSAGE_TYPES.MOVE_TO_NEW_WINDOW:
       return typeof msg.tabId === 'number';
     case MESSAGE_TYPES.COPY_URL:
       return typeof msg.url === 'string';

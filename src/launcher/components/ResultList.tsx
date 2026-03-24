@@ -1,9 +1,9 @@
-import { RankedTabResult } from '../../shared/types';
+import { RankedItemResult } from '../../shared/types';
 import { ResultItem } from './ResultItem';
 import { EmptyState } from './EmptyState';
 
 type Props = {
-  results: RankedTabResult[];
+  results: RankedItemResult[];
   selectedIndex: number;
   onSelect: (index: number) => void;
 };

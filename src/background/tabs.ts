@@ -3,124 +3,47 @@
  * Uses typed message router with structured error responses
  */
 
-import { LauncherTab } from '../shared/types';
 import {
-  MESSAGE_TYPES,
-  validateMessage,
-  ok,
-  err,
-  GetTabsResponse,
+  success,
+  failure,
   SwitchTabResponse,
   CloseTabResponse,
-  CopyUrlResponse
+  CopyUrlResponse,
+  TogglePinTabResponse,
+  DuplicateTabResponse,
+  ToggleMuteTabResponse,
+  MoveToNewWindowResponse
 } from '../shared/messages';
-import { mruTracker } from './mru';
-
-// ============================================
-// Typed Message Router
-// ============================================
-
-export function setupMessageListeners() {
-  chrome.runtime.onMessage.addListener((
-    message: unknown,
-    _sender: chrome.runtime.MessageSender,
-    sendResponse: (response: GetTabsResponse | SwitchTabResponse | CloseTabResponse | CopyUrlResponse) => void
-  ) => {
-    // Validate incoming message
-    if (!validateMessage(message)) {
-      console.warn('[Background] Invalid message received:', message);
-      sendResponse(err('Invalid message format'));
-      return false;
-    }
-
-    // Route to handler
-    switch (message.type) {
-      case MESSAGE_TYPES.GET_TABS:
-        handleGetTabs()
-          .then(response => sendResponse(response))
-          .catch(e => sendResponse(err(String(e))));
-        return true;
-
-      case MESSAGE_TYPES.SWITCH_TAB:
-        handleSwitchTab(message.tabId, message.windowId)
-          .then(response => sendResponse(response))
-          .catch(e => sendResponse(err(String(e))));
-        return true;
-
-      case MESSAGE_TYPES.CLOSE_TAB:
-        handleCloseTab(message.tabId)
-          .then(response => sendResponse(response))
-          .catch(e => sendResponse(err(String(e))));
-        return true;
-
-      case MESSAGE_TYPES.COPY_URL:
-        handleCopyUrl(message.url)
-          .then(response => sendResponse(response))
-          .catch(e => sendResponse(err(String(e))));
-        return true;
-
-      default:
-        // Should never reach here due to validateMessage
-        sendResponse(err('Unknown message type'));
-        return false;
-    }
-  });
-}
+import { logger } from '../shared/logger';
 
 // ============================================
 // Handlers
 // ============================================
 
-async function handleGetTabs(): Promise<GetTabsResponse> {
+// ============================================
+
+export async function handleSwitchTab(
+  tabId: number,
+  windowId: number,
+  url?: string,
+  itemType?: string,
+  sessionId?: string
+): Promise<SwitchTabResponse> {
   try {
-    const rawTabs = await chrome.tabs.query({});
-    const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const currentTabId = activeTabs.length > 0 ? activeTabs[0].id : undefined;
+    if (itemType === 'closed_tab' && sessionId) {
+      await chrome.sessions.restore(sessionId);
+      return success({ success: true });
+    }
 
-    const tabs: LauncherTab[] = rawTabs
-      .filter((tab) => tab.id !== undefined && tab.windowId !== undefined)
-      .map((tab) => {
-        let host = '';
-        let path = '';
-        try {
-          if (tab.url) {
-            const urlObj = new URL(tab.url);
-            host = urlObj.hostname;
-            path = urlObj.pathname + urlObj.search;
-          }
-        } catch (e) {
-          // Handle invalid URLs like chrome://
-          host = tab.url || '';
-        }
+    if ((itemType === 'bookmark' || itemType === 'history') && url) {
+      await chrome.tabs.create({ url, active: true });
+      return success({ success: true });
+    }
 
-        return {
-          id: tab.id!,
-          windowId: tab.windowId!,
-          title: tab.title || 'Untitled Tab',
-          url: tab.url || '',
-          host,
-          path,
-          favIconUrl: tab.favIconUrl,
-          active: tab.active,
-          pinned: tab.pinned,
-          isCurrentTab: tab.id === currentTabId,
-          mruRank: mruTracker.getRank(tab.id!)
-        };
-      });
-
-    return ok({ tabs });
-  } catch (error) {
-    console.error('[Background] Failed to get tabs:', error);
-    return err(`Failed to get tabs: ${String(error)}`);
-  }
-}
-
-async function handleSwitchTab(tabId: number, windowId: number): Promise<SwitchTabResponse> {
-  try {
     // Validate tab exists
     const tab = await chrome.tabs.get(tabId);
     if (!tab.id) {
-      return err('Tab no longer exists');
+      return failure('Tab no longer exists', 'TAB_NOT_FOUND');
     }
 
     await chrome.tabs.update(tabId, { active: true });
@@ -132,33 +55,77 @@ async function handleSwitchTab(tabId: number, windowId: number): Promise<SwitchT
       await chrome.windows.remove(currentWindow.id!);
     }
 
-    return ok({ success: true });
+    return success({ success: true });
   } catch (error) {
-    console.error('[Background] Failed to switch tab:', error);
-    return err(`Failed to switch tab: ${String(error)}`);
+    logger.error('Failed to switch tab:', error);
+    return failure(`Failed to switch tab: ${String(error)}`, 'SWITCH_TAB_FAILED');
   }
 }
 
-async function handleCloseTab(tabId: number): Promise<CloseTabResponse> {
+export async function handleCloseTab(tabId: number): Promise<CloseTabResponse> {
   try {
     await chrome.tabs.remove(tabId);
-    return ok({ success: true });
+    return success({ success: true });
   } catch (error) {
-    console.error('[Background] Failed to close tab:', error);
-    return err(`Failed to close tab: ${String(error)}`);
+    logger.error('Failed to close tab:', error);
+    return failure(`Failed to close tab: ${String(error)}`, 'CLOSE_TAB_FAILED');
   }
 }
 
-async function handleCopyUrl(url: string): Promise<CopyUrlResponse> {
+export async function handleCopyUrl(url: string): Promise<CopyUrlResponse> {
   try {
     if (!url) {
-      return err('No URL provided');
+      return failure('No URL provided', 'NO_URL_PROVIDED');
     }
 
     await navigator.clipboard.writeText(url);
-    return ok({ success: true });
+    return success({ success: true });
   } catch (error) {
-    console.error('[Background] Failed to copy URL:', error);
-    return err(`Failed to copy URL: ${String(error)}`);
+    logger.error('Failed to copy URL:', error);
+    return failure(`Failed to copy URL: ${String(error)}`, 'COPY_URL_FAILED');
+  }
+}
+
+export async function handleTogglePin(tabId: number): Promise<TogglePinTabResponse> {
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    const pinState = !tab.pinned;
+    await chrome.tabs.update(tabId, { pinned: pinState });
+    return success({ success: true, pinned: pinState });
+  } catch (error) {
+    logger.error('Failed to toggle pin:', error);
+    return failure(`Failed to toggle pin: ${String(error)}`, 'TOGGLE_PIN_FAILED');
+  }
+}
+
+export async function handleDuplicate(tabId: number): Promise<DuplicateTabResponse> {
+  try {
+    await chrome.tabs.duplicate(tabId);
+    return success({ success: true });
+  } catch (error) {
+    logger.error('Failed to duplicate tab:', error);
+    return failure(`Failed to duplicate tab: ${String(error)}`, 'DUPLICATE_TAB_FAILED');
+  }
+}
+
+export async function handleToggleMute(tabId: number): Promise<ToggleMuteTabResponse> {
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    const muteState = !tab.mutedInfo?.muted;
+    await chrome.tabs.update(tabId, { muted: muteState });
+    return success({ success: true, muted: muteState });
+  } catch (error) {
+    logger.error('Failed to toggle mute:', error);
+    return failure(`Failed to toggle mute: ${String(error)}`, 'TOGGLE_MUTE_FAILED');
+  }
+}
+
+export async function handleMoveToNewWindow(tabId: number): Promise<MoveToNewWindowResponse> {
+  try {
+    await chrome.windows.create({ tabId });
+    return success({ success: true });
+  } catch (error) {
+    logger.error('Failed to move tab to new window:', error);
+    return failure(`Failed to move tab: ${String(error)}`, 'MOVE_TAB_FAILED');
   }
 }

@@ -5,7 +5,10 @@
   "description": "Launcher-style tab switching for Chrome.",
   "permissions": [
     "tabs",
-    "windows"
+    "windows",
+    "bookmarks",
+    "history",
+    "sessions"
   ],
   "background": {
     "service_worker": "background.js",
