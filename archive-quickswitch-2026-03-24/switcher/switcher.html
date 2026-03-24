@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="switcher.css">
+</head>
+<body>
+  <!-- Search -->
+  <div class="search-container">
+    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"/>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    <input
+      class="search-input"
+      type="text"
+      placeholder="Search tabs..."
+      autocomplete="off"
+      autocorrect="off"
+      autocapitalize="off"
+      spellcheck="false"
+      autofocus
+    />
+    <span class="search-badge">⌥Q</span>
+  </div>
+
+  <!-- Tab List -->
+  <div class="tab-list" role="listbox" aria-label="Tabs"></div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-shortcuts">
+      <span class="footer-shortcut"><kbd>↑↓</kbd> navigate</span>
+      <span class="footer-shortcut"><kbd>⏎</kbd> switch</span>
+      <span class="footer-shortcut"><kbd>⌫</kbd> close</span>
+      <span class="footer-shortcut"><kbd>esc</kbd> dismiss</span>
+    </div>
+    <span class="footer-count"></span>
+  </div>
+
+  <script src="../lib/fuzzy.js"></script>
+  <script src="switcher.js"></script>
+</body>
+</html>
