@@ -5,6 +5,7 @@ import { MESSAGE_TYPES, GetTabsRequest, GetTabsResponse } from '../../shared/mes
 export function useLauncherData() {
   const [tabs, setTabs] = useState<LauncherTab[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -12,9 +13,21 @@ export function useLauncherData() {
     const request: GetTabsRequest = { type: MESSAGE_TYPES.GET_TABS };
     chrome.runtime.sendMessage(request, (response: GetTabsResponse) => {
       if (!mounted) return;
-      if (response && response.tabs) {
+
+      // Handle the new Ok/Err response format
+      if (!response || response.ok === false) {
+        console.error('[useLauncherData] Failed to get tabs:', response);
+        setError(response?.ok === false ? response.error : 'Unknown error');
+        setLoading(false);
+        return;
+      }
+
+      // Unwrap the successful response
+      const { tabs: fetchedTabs } = response.data;
+
+      if (fetchedTabs && Array.isArray(fetchedTabs)) {
         // Exclude current window's current tab from being first choice if there are other tabs
-        let sortedTabs = [...response.tabs].sort((a, b) => {
+        let sortedTabs = [...fetchedTabs].sort((a, b) => {
           if (a.mruRank !== b.mruRank) {
             return a.mruRank - b.mruRank;
           }
@@ -31,11 +44,12 @@ export function useLauncherData() {
 
         setTabs(sortedTabs);
       }
+
       setLoading(false);
     });
 
     return () => { mounted = false; };
   }, []);
 
-  return { tabs, loading };
+  return { tabs, loading, error };
 }

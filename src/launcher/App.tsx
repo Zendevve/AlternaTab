@@ -5,10 +5,10 @@ import { useKeyboardNavigation } from './hooks/useKeyboardNavigation';
 import { SearchInput } from './components/SearchInput';
 import { ResultList } from './components/ResultList';
 import { FooterHints } from './components/FooterHints';
-import { MESSAGE_TYPES, SwitchTabRequest } from '../shared/messages';
+import { MESSAGE_TYPES, SwitchTabRequest, Response } from '../shared/messages';
 
 export function App() {
-  const { tabs, loading } = useLauncherData();
+  const { tabs, loading, error } = useLauncherData();
   const [query, setQuery] = useState('');
 
   const results = useSearch(tabs, query);
@@ -25,7 +25,13 @@ export function App() {
       tabId: selectedTab.id,
       windowId: selectedTab.windowId
     };
-    chrome.runtime.sendMessage(request);
+
+    chrome.runtime.sendMessage(request, (response: Response<{ success: boolean }>) => {
+      if (response && response.ok === false) {
+        console.error('[App] Switch tab failed:', response.error);
+        // Could show error toast here
+      }
+    });
   };
 
   const handleCancel = () => {
@@ -55,6 +61,11 @@ export function App() {
 
       {loading ? (
         <div className="loading-state">Loading tabs...</div>
+      ) : error ? (
+        <div className="error-state">
+          <h2>Failed to load tabs</h2>
+          <p>{error}</p>
+        </div>
       ) : (
         <ResultList
           results={results}
