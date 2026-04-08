@@ -14,9 +14,11 @@ export const MESSAGE_TYPES = {
   SWITCH_TAB: 'SWITCH_TAB',
   CLOSE_TAB: 'CLOSE_TAB',
   COPY_URL: 'COPY_URL',
-  TOGGLE_PIN_TAB: 'TOGGLE_PIN_TAB',
+  PIN_TAB: 'PIN_TAB',
+  UNPIN_TAB: 'UNPIN_TAB',
   DUPLICATE_TAB: 'DUPLICATE_TAB',
-  TOGGLE_MUTE_TAB: 'TOGGLE_MUTE_TAB',
+  MUTE_TAB: 'MUTE_TAB',
+  UNMUTE_TAB: 'UNMUTE_TAB',
   MOVE_TO_NEW_WINDOW: 'MOVE_TO_NEW_WINDOW',
 } as const;
 
@@ -69,8 +71,13 @@ export type CopyUrlRequest = {
   url: string;
 };
 
-export type TogglePinTabRequest = {
-  type: typeof MESSAGE_TYPES.TOGGLE_PIN_TAB;
+export type PinTabRequest = {
+  type: typeof MESSAGE_TYPES.PIN_TAB;
+  tabId: number;
+};
+
+export type UnpinTabRequest = {
+  type: typeof MESSAGE_TYPES.UNPIN_TAB;
   tabId: number;
 };
 
@@ -79,8 +86,13 @@ export type DuplicateTabRequest = {
   tabId: number;
 };
 
-export type ToggleMuteTabRequest = {
-  type: typeof MESSAGE_TYPES.TOGGLE_MUTE_TAB;
+export type MuteTabRequest = {
+  type: typeof MESSAGE_TYPES.MUTE_TAB;
+  tabId: number;
+};
+
+export type UnmuteTabRequest = {
+  type: typeof MESSAGE_TYPES.UNMUTE_TAB;
   tabId: number;
 };
 
@@ -94,9 +106,11 @@ export type ExtensionMessage =
   | SwitchTabRequest
   | CloseTabRequest
   | CopyUrlRequest
-  | TogglePinTabRequest
+  | PinTabRequest
+  | UnpinTabRequest
   | DuplicateTabRequest
-  | ToggleMuteTabRequest
+  | MuteTabRequest
+  | UnmuteTabRequest
   | MoveToNewWindowRequest;
 
 // ============================================
@@ -107,9 +121,11 @@ export type SearchAssetsResponse = Response<{ results: RankedItemResult[] }>;
 export type SwitchTabResponse = Response<{ success: boolean }>;
 export type CloseTabResponse = Response<{ success: boolean }>;
 export type CopyUrlResponse = Response<{ success: boolean }>;
-export type TogglePinTabResponse = Response<{ success: boolean, pinned: boolean }>;
+export type PinTabResponse = Response<{ success: boolean; pinned: true }>;
+export type UnpinTabResponse = Response<{ success: boolean; pinned: false }>;
 export type DuplicateTabResponse = Response<{ success: boolean }>;
-export type ToggleMuteTabResponse = Response<{ success: boolean, muted: boolean }>;
+export type MuteTabResponse = Response<{ success: boolean; muted: true }>;
+export type UnmuteTabResponse = Response<{ success: boolean; muted: false }>;
 export type MoveToNewWindowResponse = Response<{ success: boolean }>;
 
 export type ExtensionResponse =
@@ -117,9 +133,11 @@ export type ExtensionResponse =
   | SwitchTabResponse
   | CloseTabResponse
   | CopyUrlResponse
-  | TogglePinTabResponse
+  | PinTabResponse
+  | UnpinTabResponse
   | DuplicateTabResponse
-  | ToggleMuteTabResponse
+  | MuteTabResponse
+  | UnmuteTabResponse
   | MoveToNewWindowResponse;
 
 // ============================================
@@ -142,10 +160,11 @@ export function validateMessage(message: unknown): message is ExtensionMessage {
     case MESSAGE_TYPES.SWITCH_TAB:
       return typeof msg.tabId === 'number' && typeof msg.windowId === 'number';
     case MESSAGE_TYPES.CLOSE_TAB:
-      return typeof msg.tabId === 'number';
-    case MESSAGE_TYPES.TOGGLE_PIN_TAB:
+    case MESSAGE_TYPES.PIN_TAB:
+    case MESSAGE_TYPES.UNPIN_TAB:
     case MESSAGE_TYPES.DUPLICATE_TAB:
-    case MESSAGE_TYPES.TOGGLE_MUTE_TAB:
+    case MESSAGE_TYPES.MUTE_TAB:
+    case MESSAGE_TYPES.UNMUTE_TAB:
     case MESSAGE_TYPES.MOVE_TO_NEW_WINDOW:
       return typeof msg.tabId === 'number';
     case MESSAGE_TYPES.COPY_URL:

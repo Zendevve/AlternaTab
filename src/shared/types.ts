@@ -24,6 +24,7 @@ export type LauncherItem = {
   // Tab-specific visual state
   active?: boolean;
   pinned?: boolean;
+  muted?: boolean;
   isCurrentTab?: boolean;
 };
 

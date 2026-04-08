@@ -5,8 +5,15 @@ import {
   ExtensionResponse
 } from '../shared/messages';
 import {
-  handleSwitchTab, handleCloseTab, handleCopyUrl,
-  handleTogglePin, handleDuplicate, handleToggleMute, handleMoveToNewWindow
+  handleSwitchTab,
+  handleCloseTab,
+  handleCopyUrl,
+  handlePinTab,
+  handleUnpinTab,
+  handleDuplicateTab,
+  handleMuteTab,
+  handleUnmuteTab,
+  handleMoveToNewWindow
 } from './tabs';
 import { handleSearchAssets } from './search';
 import { logger } from '../shared/logger';
@@ -17,14 +24,12 @@ export function setupMessageRouter() {
     _sender: chrome.runtime.MessageSender,
     sendResponse: (response: ExtensionResponse) => void
   ) => {
-    // Validate incoming message
     if (!validateMessage(message)) {
       logger.warn('Invalid message received:', message);
       sendResponse(failure('Invalid message format', 'INVALID_FORMAT'));
       return false;
     }
 
-    // Route to handler
     switch (message.type) {
       case MESSAGE_TYPES.SEARCH_ASSETS:
         handleSearchAssets(message.query)
@@ -62,17 +67,26 @@ export function setupMessageRouter() {
           });
         return true;
 
-      case MESSAGE_TYPES.TOGGLE_PIN_TAB:
-        handleTogglePin(message.tabId)
+      case MESSAGE_TYPES.PIN_TAB:
+        handlePinTab(message.tabId)
           .then(sendResponse)
           .catch(e => {
-            logger.error('Error handling TOGGLE_PIN_TAB', e);
+            logger.error('Error handling PIN_TAB', e);
+            sendResponse(failure(String(e), 'INTERNAL_ERROR'));
+          });
+        return true;
+
+      case MESSAGE_TYPES.UNPIN_TAB:
+        handleUnpinTab(message.tabId)
+          .then(sendResponse)
+          .catch(e => {
+            logger.error('Error handling UNPIN_TAB', e);
             sendResponse(failure(String(e), 'INTERNAL_ERROR'));
           });
         return true;
 
       case MESSAGE_TYPES.DUPLICATE_TAB:
-        handleDuplicate(message.tabId)
+        handleDuplicateTab(message.tabId)
           .then(sendResponse)
           .catch(e => {
             logger.error('Error handling DUPLICATE_TAB', e);
@@ -80,11 +94,20 @@ export function setupMessageRouter() {
           });
         return true;
 
-      case MESSAGE_TYPES.TOGGLE_MUTE_TAB:
-        handleToggleMute(message.tabId)
+      case MESSAGE_TYPES.MUTE_TAB:
+        handleMuteTab(message.tabId)
           .then(sendResponse)
           .catch(e => {
-            logger.error('Error handling TOGGLE_MUTE_TAB', e);
+            logger.error('Error handling MUTE_TAB', e);
+            sendResponse(failure(String(e), 'INTERNAL_ERROR'));
+          });
+        return true;
+
+      case MESSAGE_TYPES.UNMUTE_TAB:
+        handleUnmuteTab(message.tabId)
+          .then(sendResponse)
+          .catch(e => {
+            logger.error('Error handling UNMUTE_TAB', e);
             sendResponse(failure(String(e), 'INTERNAL_ERROR'));
           });
         return true;
