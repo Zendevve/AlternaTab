@@ -8,10 +8,10 @@ export function FooterHints() {
         <kbd>Enter</kbd> Switch
       </div>
       <div className="hint-item">
-        <kbd>Esc</kbd> Close
+        <kbd>Esc</kbd> Close Launcher
       </div>
       <div className="hint-item hints-extended">
-        <kbd>⌘/Ctrl</kbd> + <kbd>W</kbd> Close Tab, <kbd>P</kbd> Pin, <kbd>M</kbd> Mute, <kbd>D</kbd> Dup
+        <kbd>⌘/Ctrl</kbd> + <kbd>P</kbd> Pin/Unpin, <kbd>M</kbd> Mute/Unmute, <kbd>D</kbd> Duplicate, <kbd>N</kbd> New Window, <kbd>C</kbd> Copy URL
       </div>
     </div>
   );

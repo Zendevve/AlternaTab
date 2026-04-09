@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import { rankResults } from '../rankingEngine';
 import { LauncherItem } from '../types';
 

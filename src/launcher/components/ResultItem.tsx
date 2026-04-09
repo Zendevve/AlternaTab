@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { RankedItemResult } from '../../shared/types';
-import { formatDomain, formatPath } from '../lib/format';
+import { buildFaviconSources, formatDomain, formatPath } from '../lib/format';
 
 type Props = {
   tab: RankedItemResult;
@@ -10,6 +10,14 @@ type Props = {
 
 export function ResultItem({ tab, selected, onClick }: Props) {
   const itemRef = useRef<HTMLDivElement>(null);
+  const faviconSources = useMemo(() => buildFaviconSources(tab.url, tab.favIconUrl), [tab.url, tab.favIconUrl]);
+  const [faviconIndex, setFaviconIndex] = useState(0);
+  const [faviconFailed, setFaviconFailed] = useState(false);
+
+  useEffect(() => {
+    setFaviconIndex(0);
+    setFaviconFailed(false);
+  }, [faviconSources]);
 
   useEffect(() => {
     if (selected && itemRef.current) {
@@ -17,7 +25,16 @@ export function ResultItem({ tab, selected, onClick }: Props) {
     }
   }, [selected]);
 
-  const faviconSrc = tab.favIconUrl || `chrome-extension://${chrome.runtime.id}/_favicon/?pageUrl=${encodeURIComponent(tab.url)}&size=32`;
+  const badgeEntries = [
+    tab.isCurrentTab ? { className: 'current-badge', label: 'Current' } : null,
+    tab.active ? { className: 'active-badge', label: 'Active' } : null,
+    tab.pinned ? { className: 'pinned-badge', label: 'Pinned' } : null,
+    tab.type === 'closed_tab' ? { className: 'closed-badge', label: 'Closed' } : null,
+    tab.type === 'bookmark' ? { className: 'bookmark-badge', label: 'Bookmark' } : null,
+    tab.type === 'history' ? { className: 'history-badge', label: 'History' } : null
+  ].filter((entry): entry is { className: string; label: string } => entry !== null);
+
+  const faviconSrc = faviconSources[faviconIndex] ?? '';
 
   return (
     <div
@@ -26,17 +43,36 @@ export function ResultItem({ tab, selected, onClick }: Props) {
       onClick={onClick}
     >
       <div className="result-icon-container">
-        <img src={faviconSrc} className="result-icon" alt="" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.removeAttribute('hidden'); }} />
-        <div className="result-icon-fallback" hidden />
+        {!faviconFailed && faviconSrc ? (
+          <img
+            key={faviconSrc}
+            src={faviconSrc}
+            className="result-icon"
+            alt=""
+            onError={() => {
+              if (faviconIndex < faviconSources.length - 1) {
+                setFaviconIndex((prev) => prev + 1);
+              } else {
+                setFaviconFailed(true);
+              }
+            }}
+          />
+        ) : null}
+        <div className="result-icon-fallback" hidden={!faviconFailed || !faviconSrc} />
       </div>
       <div className="result-details">
         <div className="result-title">{tab.title}</div>
         <div className="result-url">{formatDomain(tab.host)}{formatPath(tab.path)}</div>
       </div>
-      <div className="result-badges">
-        {tab.isCurrentTab && <span className="badge current-badge">Current</span>}
-        {tab.pinned && <span className="badge pinned-badge">Pinned</span>}
-      </div>
+      {badgeEntries.length > 0 ? (
+        <div className="result-badges">
+          {badgeEntries.map((badge) => (
+            <span key={badge.className} className={`badge ${badge.className}`}>
+              {badge.label}
+            </span>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

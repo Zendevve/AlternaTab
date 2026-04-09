@@ -191,15 +191,40 @@ body {
   color: #ffc800;
 }
 
+.active-badge {
+  background-color: rgba(90, 155, 255, 0.18);
+  color: #8fc1ff;
+}
+
+.closed-badge,
+.bookmark-badge,
+.history-badge {
+  background-color: var(--badge-bg);
+  color: var(--badge-text);
+}
+
 /* States */
 .empty-state,
 .loading-state {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   flex-grow: 1;
   color: var(--text-dim);
   font-size: 14px;
+  gap: 8px;
+  text-align: center;
+  padding: 12px 24px;
+}
+
+.empty-state-text {
+  color: var(--text-main);
+}
+
+.empty-state-detail {
+  font-size: 12px;
+  color: var(--text-dim);
 }
 
 /* Footer Hints */
