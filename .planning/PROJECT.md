@@ -12,8 +12,8 @@ The fastest way to find, switch, restore, organize, and control anything in the 
 (None yet)
 
 ### Active
-- [ ] Phase 0: Stabilize the architecture (MRU, router, logging)
-- [ ] Phase 1: Best-in-class tab switcher (ranking, UX)
+- [ ] Phase 1: Best-in-class tab switcher (ranking, UX) — **Current priority**
+- [ ] Phase 0: Stabilize the architecture (MRU, router, logging) — Deferred carry-over
 - [ ] Phase 2: Add result actions (close, pin, duplicate)
 - [ ] Phase 3: Unified browser search (history, bookmarks)
 - [ ] Phase 4: Personalization and adaptive ranking

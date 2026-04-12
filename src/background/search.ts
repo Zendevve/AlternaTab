@@ -8,7 +8,6 @@ export async function handleSearchAssets(query: string): Promise<SearchAssetsRes
   try {
     const results: LauncherItem[] = [];
 
-    // 1. Always fetch Open Tabs
     const rawTabs = await chrome.tabs.query({});
     const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
     const currentTabId = activeTabs.length > 0 ? activeTabs[0].id : undefined;
@@ -40,6 +39,7 @@ export async function handleSearchAssets(query: string): Promise<SearchAssetsRes
           favIconUrl: tab.favIconUrl,
           active: tab.active,
           pinned: tab.pinned,
+          muted: tab.mutedInfo?.muted ?? false,
           isCurrentTab: tab.id === currentTabId,
           mruRank: mruService.rank(tab.id!)
         };
@@ -49,9 +49,7 @@ export async function handleSearchAssets(query: string): Promise<SearchAssetsRes
 
     const isQueryEmpty = !query.trim();
 
-    // 2. If Query Empty, fetch Recently Closed Sessions
     if (isQueryEmpty) {
-      // requires "sessions" permission
       if (chrome.sessions) {
         const sessions = await chrome.sessions.getRecentlyClosed({ maxResults: 10 });
         for (const session of sessions) {
@@ -79,9 +77,6 @@ export async function handleSearchAssets(query: string): Promise<SearchAssetsRes
         }
       }
     } else {
-      // 3. If Query NOT Empty, fetch Bookmarks and History
-
-      // Bookmarks
       if (chrome.bookmarks) {
         const bookmarks = await chrome.bookmarks.search(query);
         for (const bm of bookmarks) {
@@ -108,7 +103,6 @@ export async function handleSearchAssets(query: string): Promise<SearchAssetsRes
         }
       }
 
-      // History
       if (chrome.history) {
         const historyItems = await chrome.history.search({ text: query, maxResults: 100 });
         for (const hi of historyItems) {
@@ -123,7 +117,6 @@ export async function handleSearchAssets(query: string): Promise<SearchAssetsRes
               host = hi.url || '';
             }
 
-            // Avoid duplicating open tabs from history
             const isAlreadyOpen = openTabs.some(t => t.url === hi.url);
             if (!isAlreadyOpen) {
               results.push({
@@ -140,10 +133,7 @@ export async function handleSearchAssets(query: string): Promise<SearchAssetsRes
       }
     }
 
-    // 4. Rank Results
     const rankedResults = rankResults(query, results);
-
-    // 5. Return Top 50
     return success({ results: rankedResults.slice(0, 50) });
 
   } catch (error) {

@@ -1,5 +1,9 @@
 # Roadmap
 
+## Current Priority
+- Phase 1: Best-in-class tab switcher
+- Phase 0 is temporarily deferred as carry-over stabilization work
+
 ## Phase 0: Stabilize the architecture
 Goal: remove fragility, improve debuggability, make behavior deterministic, create strong extension boundaries.
 Requirements:

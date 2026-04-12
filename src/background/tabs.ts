@@ -9,18 +9,14 @@ import {
   SwitchTabResponse,
   CloseTabResponse,
   CopyUrlResponse,
-  TogglePinTabResponse,
+  PinTabResponse,
+  UnpinTabResponse,
   DuplicateTabResponse,
-  ToggleMuteTabResponse,
+  MuteTabResponse,
+  UnmuteTabResponse,
   MoveToNewWindowResponse
 } from '../shared/messages';
 import { logger } from '../shared/logger';
-
-// ============================================
-// Handlers
-// ============================================
-
-// ============================================
 
 export async function handleSwitchTab(
   tabId: number,
@@ -40,7 +36,6 @@ export async function handleSwitchTab(
       return success({ success: true });
     }
 
-    // Validate tab exists
     const tab = await chrome.tabs.get(tabId);
     if (!tab.id) {
       return failure('Tab no longer exists', 'TAB_NOT_FOUND');
@@ -49,7 +44,6 @@ export async function handleSwitchTab(
     await chrome.tabs.update(tabId, { active: true });
     await chrome.windows.update(windowId, { focused: true });
 
-    // Auto-close launcher if we switched successfully and launcher is in a popup
     const currentWindow = await chrome.windows.getCurrent();
     if (currentWindow.type === 'popup') {
       await chrome.windows.remove(currentWindow.id!);
@@ -64,6 +58,11 @@ export async function handleSwitchTab(
 
 export async function handleCloseTab(tabId: number): Promise<CloseTabResponse> {
   try {
+    const tab = await chrome.tabs.get(tabId);
+    if (!tab.id) {
+      return failure('Tab no longer exists', 'TAB_NOT_FOUND');
+    }
+
     await chrome.tabs.remove(tabId);
     return success({ success: true });
   } catch (error) {
@@ -86,19 +85,27 @@ export async function handleCopyUrl(url: string): Promise<CopyUrlResponse> {
   }
 }
 
-export async function handleTogglePin(tabId: number): Promise<TogglePinTabResponse> {
+export async function handlePinTab(tabId: number): Promise<PinTabResponse> {
   try {
-    const tab = await chrome.tabs.get(tabId);
-    const pinState = !tab.pinned;
-    await chrome.tabs.update(tabId, { pinned: pinState });
-    return success({ success: true, pinned: pinState });
+    await chrome.tabs.update(tabId, { pinned: true });
+    return success({ success: true, pinned: true });
   } catch (error) {
-    logger.error('Failed to toggle pin:', error);
-    return failure(`Failed to toggle pin: ${String(error)}`, 'TOGGLE_PIN_FAILED');
+    logger.error('Failed to pin tab:', error);
+    return failure(`Failed to pin tab: ${String(error)}`, 'PIN_TAB_FAILED');
   }
 }
 
-export async function handleDuplicate(tabId: number): Promise<DuplicateTabResponse> {
+export async function handleUnpinTab(tabId: number): Promise<UnpinTabResponse> {
+  try {
+    await chrome.tabs.update(tabId, { pinned: false });
+    return success({ success: true, pinned: false });
+  } catch (error) {
+    logger.error('Failed to unpin tab:', error);
+    return failure(`Failed to unpin tab: ${String(error)}`, 'UNPIN_TAB_FAILED');
+  }
+}
+
+export async function handleDuplicateTab(tabId: number): Promise<DuplicateTabResponse> {
   try {
     await chrome.tabs.duplicate(tabId);
     return success({ success: true });
@@ -108,20 +115,33 @@ export async function handleDuplicate(tabId: number): Promise<DuplicateTabRespon
   }
 }
 
-export async function handleToggleMute(tabId: number): Promise<ToggleMuteTabResponse> {
+export async function handleMuteTab(tabId: number): Promise<MuteTabResponse> {
   try {
-    const tab = await chrome.tabs.get(tabId);
-    const muteState = !tab.mutedInfo?.muted;
-    await chrome.tabs.update(tabId, { muted: muteState });
-    return success({ success: true, muted: muteState });
+    await chrome.tabs.update(tabId, { muted: true });
+    return success({ success: true, muted: true });
   } catch (error) {
-    logger.error('Failed to toggle mute:', error);
-    return failure(`Failed to toggle mute: ${String(error)}`, 'TOGGLE_MUTE_FAILED');
+    logger.error('Failed to mute tab:', error);
+    return failure(`Failed to mute tab: ${String(error)}`, 'MUTE_TAB_FAILED');
+  }
+}
+
+export async function handleUnmuteTab(tabId: number): Promise<UnmuteTabResponse> {
+  try {
+    await chrome.tabs.update(tabId, { muted: false });
+    return success({ success: true, muted: false });
+  } catch (error) {
+    logger.error('Failed to unmute tab:', error);
+    return failure(`Failed to unmute tab: ${String(error)}`, 'UNMUTE_TAB_FAILED');
   }
 }
 
 export async function handleMoveToNewWindow(tabId: number): Promise<MoveToNewWindowResponse> {
   try {
+    const tab = await chrome.tabs.get(tabId);
+    if (!tab.id) {
+      return failure('Tab no longer exists', 'TAB_NOT_FOUND');
+    }
+
     await chrome.windows.create({ tabId });
     return success({ success: true });
   } catch (error) {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-export type TabAction = 'CLOSE' | 'PIN' | 'DUPLICATE' | 'MUTE' | 'NEW_WINDOW' | 'COPY_URL';
+export type TabAction = 'PIN_OR_UNPIN' | 'DUPLICATE' | 'MUTE_OR_UNMUTE' | 'NEW_WINDOW' | 'COPY_URL';
 
 export function useKeyboardNavigation(
   itemCount: number,
@@ -10,43 +10,60 @@ export function useKeyboardNavigation(
 ) {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  // Reset selection when item count changes (e.g. search query changed)
   useEffect(() => {
-    setSelectedIndex(0);
+    if (itemCount <= 0) {
+      setSelectedIndex(0);
+      return;
+    }
+
+    setSelectedIndex((prev) => Math.min(prev, itemCount - 1));
   }, [itemCount]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowDown') {
+        if (itemCount <= 0) return;
         e.preventDefault();
-        setSelectedIndex(prev => (prev + 1) % itemCount);
-      } else if (e.key === 'ArrowUp') {
+        setSelectedIndex((prev) => (prev + 1) % itemCount);
+        return;
+      }
+
+      if (e.key === 'ArrowUp') {
+        if (itemCount <= 0) return;
         e.preventDefault();
-        setSelectedIndex(prev => (prev - 1 + itemCount) % itemCount);
-      } else if (e.key === 'Enter') {
+        setSelectedIndex((prev) => (prev - 1 + itemCount) % itemCount);
+        return;
+      }
+
+      if (e.key === 'Enter') {
         e.preventDefault();
         if (itemCount > 0) {
           onSelect(selectedIndex);
         }
-      } else if (e.key === 'Escape') {
+        return;
+      }
+
+      if (e.key === 'Escape') {
         e.preventDefault();
         onCancel();
-      } else if (e.key >= '1' && e.key <= '9' && (e.metaKey || e.ctrlKey)) {
+        return;
+      }
+
+      if (e.key >= '1' && e.key <= '9' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         const index = parseInt(e.key, 10) - 1;
         if (index < itemCount) {
-          onSelect(index);
+          setSelectedIndex(index);
         }
-      } else if (onAction && itemCount > 0 && (e.metaKey || e.ctrlKey)) {
+        return;
+      }
+
+      if (onAction && itemCount > 0 && (e.metaKey || e.ctrlKey)) {
         const key = e.key.toLowerCase();
         switch (key) {
-          case 'w':
-            e.preventDefault();
-            onAction(selectedIndex, 'CLOSE');
-            break;
           case 'p':
             e.preventDefault();
-            onAction(selectedIndex, 'PIN');
+            onAction(selectedIndex, 'PIN_OR_UNPIN');
             break;
           case 'd':
             e.preventDefault();
@@ -54,7 +71,7 @@ export function useKeyboardNavigation(
             break;
           case 'm':
             e.preventDefault();
-            onAction(selectedIndex, 'MUTE');
+            onAction(selectedIndex, 'MUTE_OR_UNMUTE');
             break;
           case 'c':
             e.preventDefault();

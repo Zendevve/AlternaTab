@@ -65,3 +65,9 @@
 - The ranking engine uses predefined constants instead of magic numbers.
 - MRU effectively acts as a solid tie-breaker.
 </must_haves>
+
+## Completion Summary
+- Implemented `src/shared/constants/ranking.ts` with centralized ranking weights and updated `src/launcher/lib/ranking.ts` to score and order results with deterministic tie-breakers.
+- Updated `src/launcher/lib/__tests__/ranking.test.ts` to verify exact-title priority, MRU tie-break behavior, and active-tab penalty behavior.
+- Verification evidence: `npm run test` now exits successfully with ranking assertions passing.
+- Requirement mapping: **REQ-101** satisfied via explicit scoring constants, stable ranking order, and test-backed ranking behavior.
