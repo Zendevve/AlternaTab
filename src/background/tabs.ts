@@ -6,6 +6,7 @@
 import {
   success,
   failure,
+  SwitchTabRequest,
   SwitchTabResponse,
   CloseTabResponse,
   CopyUrlResponse,
@@ -18,31 +19,29 @@ import {
 } from '../shared/messages';
 import { logger } from '../shared/logger';
 
-export async function handleSwitchTab(
-  tabId: number,
-  windowId: number,
-  url?: string,
-  itemType?: string,
-  sessionId?: string
-): Promise<SwitchTabResponse> {
+export async function handleSwitchTab(request: SwitchTabRequest): Promise<SwitchTabResponse> {
   try {
-    if (itemType === 'closed_tab' && sessionId) {
-      await chrome.sessions.restore(sessionId);
+    if (request.itemType === 'closed_tab') {
+      await chrome.sessions.restore(request.sessionId);
       return success({ success: true });
     }
 
-    if ((itemType === 'bookmark' || itemType === 'history') && url) {
-      await chrome.tabs.create({ url, active: true });
+    if (request.itemType === 'bookmark' || request.itemType === 'history') {
+      await chrome.tabs.create({ url: request.url, active: true });
       return success({ success: true });
     }
 
-    const tab = await chrome.tabs.get(tabId);
+    if (!('tabId' in request) || !('windowId' in request)) {
+      return failure('Invalid switch tab request', 'INVALID_SWITCH_PAYLOAD');
+    }
+
+    const tab = await chrome.tabs.get(request.tabId);
     if (!tab.id) {
       return failure('Tab no longer exists', 'TAB_NOT_FOUND');
     }
 
-    await chrome.tabs.update(tabId, { active: true });
-    await chrome.windows.update(windowId, { focused: true });
+    await chrome.tabs.update(request.tabId, { active: true });
+    await chrome.windows.update(request.windowId, { focused: true });
 
     const currentWindow = await chrome.windows.getCurrent();
     if (currentWindow.type === 'popup') {

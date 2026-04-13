@@ -3,7 +3,7 @@
 ## Frontmatter
 - wave: 1
 - depends_on: ["Phase 2"]
-- files_modified: ["public/manifest.json", "src/shared/types.ts", "src/shared/messages.ts", "src/shared/ranking.ts", "src/launcher/lib/ranking.ts", "src/background/search.ts", "src/background/router.ts", "src/launcher/hooks/useSearch.ts", "src/launcher/hooks/useLauncherData.ts", "src/launcher/components/ResultItem.tsx"]
+- files_modified: ["public/manifest.json", "src/shared/types.ts", "src/shared/messages.ts", "src/shared/rankingEngine.ts", "src/background/search.ts", "src/background/router.ts", "src/launcher/hooks/useSearch.ts", "src/launcher/components/ResultItem.tsx"]
 - autonomous: false
 - requirements_addressed: ["REQ-301", "REQ-302", "REQ-303", "REQ-304", "REQ-305"]
 
@@ -96,8 +96,53 @@
 </acceptance_criteria>
 </task>
 
+## Execution Order (Waves)
+
+### Wave 1 — Contracts and Compatibility Foundation
+- Files: `src/shared/types.ts`, `src/shared/messages.ts`
+- Deliverables:
+  - Finalize `LauncherItem` contract and source-specific optional IDs.
+  - Confirm `SEARCH_ASSETS` message request/response shape for all sources.
+- Dependency notes:
+  - Blocks all downstream implementation because router, search provider, and UI consume these contracts.
+
+### Wave 2 — Background Aggregation and Ranking Policy
+- Files: `src/background/search.ts`, `src/shared/rankingEngine.ts`, `src/background/router.ts`
+- Deliverables:
+  - Aggregate from tabs always.
+  - Empty query path adds recently closed sessions.
+  - Non-empty query path adds bookmarks + history.
+  - Enforce source ranking policy and cap results to top 50.
+- Dependency notes:
+  - Depends on Wave 1 types/messages.
+  - Produces stable API for UI integration in Wave 3.
+
+### Wave 3 — UI Query Flow and Rendering
+- Files: `src/launcher/hooks/useSearch.ts`, `src/launcher/components/ResultItem.tsx`
+- Deliverables:
+  - Debounced background query flow.
+  - No client-side re-ranking duplication once background ranking is authoritative.
+  - Source badges visible for Bookmark, History, Closed.
+- Dependency notes:
+  - Depends on Wave 2 response behavior and ranking.
+
+### Wave 4 — Permission + Verification Hardening
+- Files: `public/manifest.json` and tests under `src/shared/__tests__`, `src/background/__tests__`, `src/launcher/lib/__tests__` as needed
+- Deliverables:
+  - Confirm required permissions are present.
+  - Add/adjust tests for unified type mapping and source ordering policy.
+  - Validate must-haves and regressions for Phase 1/2 flows.
+
+## Explicit Decisions
+- Background remains the source of truth for search aggregation and ranking.
+- UI must not apply a second ranking pass to `SEARCH_ASSETS` results.
+- Empty query behavior: open tabs first, then recently closed; bookmarks/history only on non-empty query.
+- Result limit remains top 50 after ranking.
+
 ## Verification
 <must_haves>
 - Typing a known bookmark title successfully displays it as a Bookmark item.
+- Typing a known history entry successfully displays it as a History item.
 - Empty query shows currently open tabs first, followed by recently closed tabs.
+- Ranking order honors source policy when text relevance is comparable.
 </must_haves>

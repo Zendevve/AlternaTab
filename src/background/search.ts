@@ -4,6 +4,21 @@ import { mruService } from './services/mruService';
 import { rankResults } from '../shared/rankingEngine';
 import { logger } from '../shared/logger';
 
+function parseUrlParts(url: string): { host: string; path: string } {
+  try {
+    const urlObj = new URL(url);
+    return {
+      host: urlObj.hostname,
+      path: urlObj.pathname + urlObj.search
+    };
+  } catch {
+    return {
+      host: url,
+      path: ''
+    };
+  }
+}
+
 export async function handleSearchAssets(query: string): Promise<SearchAssetsResponse> {
   try {
     const results: LauncherItem[] = [];
@@ -15,17 +30,7 @@ export async function handleSearchAssets(query: string): Promise<SearchAssetsRes
     const openTabs: LauncherItem[] = rawTabs
       .filter((tab) => tab.id !== undefined && tab.windowId !== undefined)
       .map((tab) => {
-        let host = '';
-        let path = '';
-        try {
-          if (tab.url) {
-            const urlObj = new URL(tab.url);
-            host = urlObj.hostname;
-            path = urlObj.pathname + urlObj.search;
-          }
-        } catch (e) {
-          host = tab.url || '';
-        }
+        const { host, path } = parseUrlParts(tab.url || '');
 
         return {
           id: `tab-${tab.id}`,
@@ -41,7 +46,7 @@ export async function handleSearchAssets(query: string): Promise<SearchAssetsRes
           pinned: tab.pinned,
           muted: tab.mutedInfo?.muted ?? false,
           isCurrentTab: tab.id === currentTabId,
-          mruRank: mruService.rank(tab.id!)
+          mruRank: mruService.rank(tab.id as number)
         };
       });
 
@@ -53,25 +58,18 @@ export async function handleSearchAssets(query: string): Promise<SearchAssetsRes
       if (chrome.sessions) {
         const sessions = await chrome.sessions.getRecentlyClosed({ maxResults: 10 });
         for (const session of sessions) {
-          if (session.tab && session.tab.url) {
-            let host = '';
-            let path = '';
-            try {
-              const urlObj = new URL(session.tab.url);
-              host = urlObj.hostname;
-              path = urlObj.pathname + urlObj.search;
-            } catch (e) {
-              host = session.tab.url || '';
-            }
+          const sessionTab = session.tab;
+          if (sessionTab?.url && sessionTab.sessionId) {
+            const { host, path } = parseUrlParts(sessionTab.url);
             results.push({
-              id: `closed-${session.tab.sessionId}`,
+              id: `closed-${sessionTab.sessionId}`,
               type: 'closed_tab',
-              sessionId: session.tab.sessionId,
-              title: session.tab.title || 'Closed Tab',
-              url: session.tab.url,
+              sessionId: sessionTab.sessionId,
+              title: sessionTab.title || 'Closed Tab',
+              url: sessionTab.url,
               host,
               path,
-              favIconUrl: session.tab.favIconUrl
+              favIconUrl: sessionTab.favIconUrl
             });
           }
         }
@@ -81,15 +79,7 @@ export async function handleSearchAssets(query: string): Promise<SearchAssetsRes
         const bookmarks = await chrome.bookmarks.search(query);
         for (const bm of bookmarks) {
           if (bm.url) {
-            let host = '';
-            let path = '';
-            try {
-              const urlObj = new URL(bm.url);
-              host = urlObj.hostname;
-              path = urlObj.pathname + urlObj.search;
-            } catch (e) {
-              host = bm.url || '';
-            }
+            const { host, path } = parseUrlParts(bm.url);
             results.push({
               id: `bookmark-${bm.id}`,
               type: 'bookmark',
@@ -106,22 +96,14 @@ export async function handleSearchAssets(query: string): Promise<SearchAssetsRes
       if (chrome.history) {
         const historyItems = await chrome.history.search({ text: query, maxResults: 100 });
         for (const hi of historyItems) {
-          if (hi.url) {
-            let host = '';
-            let path = '';
-            try {
-              const urlObj = new URL(hi.url);
-              host = urlObj.hostname;
-              path = urlObj.pathname + urlObj.search;
-            } catch (e) {
-              host = hi.url || '';
-            }
-
-            const isAlreadyOpen = openTabs.some(t => t.url === hi.url);
+          if (hi.url && hi.id) {
+            const { host, path } = parseUrlParts(hi.url);
+            const isAlreadyOpen = openTabs.some((tab) => tab.url === hi.url);
             if (!isAlreadyOpen) {
               results.push({
                 id: `history-${hi.id}`,
                 type: 'history',
+                historyId: String(hi.id),
                 title: hi.title || host,
                 url: hi.url,
                 host,
@@ -133,9 +115,8 @@ export async function handleSearchAssets(query: string): Promise<SearchAssetsRes
       }
     }
 
-    const rankedResults = rankResults(query, results);
-    return success({ results: rankedResults.slice(0, 50) });
-
+    const rankedResults = rankResults(query, results).slice(0, 50);
+    return success({ query, results: rankedResults });
   } catch (error) {
     logger.error('Failed to search assets:', error);
     return failure(`Search failed: ${String(error)}`, 'SEARCH_FAILED');

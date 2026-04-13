@@ -41,7 +41,7 @@ export function setupMessageRouter() {
         return true;
 
       case MESSAGE_TYPES.SWITCH_TAB:
-        handleSwitchTab(message.tabId, message.windowId, message.url, message.itemType, message.sessionId)
+        handleSwitchTab(message)
           .then(sendResponse)
           .catch(e => {
             logger.error('Error handling SWITCH_TAB', e);

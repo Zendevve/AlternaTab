@@ -1,6 +1,6 @@
 /**
- * Message passing between popup/background
- * Uses discriminated unions for type-safe runtime communication
+ * Message passing between launcher/background.
+ * Uses discriminated unions for type-safe runtime communication.
  */
 
 import { RankedItemResult, LauncherItemType } from './types';
@@ -52,14 +52,26 @@ export type SearchAssetsRequest = {
   query: string;
 };
 
-export type SwitchTabRequest = {
+type OpenTabSwitchRequest = {
   type: typeof MESSAGE_TYPES.SWITCH_TAB;
+  itemType?: 'tab';
   tabId: number;
   windowId: number;
-  url?: string;
-  itemType?: LauncherItemType;
-  sessionId?: string;
 };
+
+type ClosedTabSwitchRequest = {
+  type: typeof MESSAGE_TYPES.SWITCH_TAB;
+  itemType: 'closed_tab';
+  sessionId: string;
+};
+
+type AssetSwitchRequest = {
+  type: typeof MESSAGE_TYPES.SWITCH_TAB;
+  itemType: Extract<LauncherItemType, 'bookmark' | 'history'>;
+  url: string;
+};
+
+export type SwitchTabRequest = OpenTabSwitchRequest | ClosedTabSwitchRequest | AssetSwitchRequest;
 
 export type CloseTabRequest = {
   type: typeof MESSAGE_TYPES.CLOSE_TAB;
@@ -117,7 +129,12 @@ export type ExtensionMessage =
 // Response Types
 // ============================================
 
-export type SearchAssetsResponse = Response<{ results: RankedItemResult[] }>;
+export type SearchAssetsPayload = {
+  query: string;
+  results: RankedItemResult[];
+};
+
+export type SearchAssetsResponse = Response<SearchAssetsPayload>;
 export type SwitchTabResponse = Response<{ success: boolean }>;
 export type CloseTabResponse = Response<{ success: boolean }>;
 export type CopyUrlResponse = Response<{ success: boolean }>;
@@ -158,6 +175,12 @@ export function validateMessage(message: unknown): message is ExtensionMessage {
     case MESSAGE_TYPES.SEARCH_ASSETS:
       return typeof msg.query === 'string';
     case MESSAGE_TYPES.SWITCH_TAB:
+      if (msg.itemType === 'closed_tab') {
+        return typeof msg.sessionId === 'string';
+      }
+      if (msg.itemType === 'bookmark' || msg.itemType === 'history') {
+        return typeof msg.url === 'string';
+      }
       return typeof msg.tabId === 'number' && typeof msg.windowId === 'number';
     case MESSAGE_TYPES.CLOSE_TAB:
     case MESSAGE_TYPES.PIN_TAB:

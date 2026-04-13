@@ -12,14 +12,15 @@ export type LauncherItem = {
   path: string;
   favIconUrl?: string;
 
-  // Scoring
-  mruRank?: number; // Only for open tabs
+  // Scoring (open tabs only)
+  mruRank?: number;
 
-  // Specific properties
+  // Source-specific identifiers
   tabId?: number;
   windowId?: number;
   sessionId?: string;
   bookmarkId?: string;
+  historyId?: string;
 
   // Tab-specific visual state
   active?: boolean;

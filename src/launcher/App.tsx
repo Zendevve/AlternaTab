@@ -19,14 +19,25 @@ export function App() {
     const selectedTab = results[index];
     if (!selectedTab) return;
 
-    const request: SwitchTabRequest = {
-      type: MESSAGE_TYPES.SWITCH_TAB,
-      tabId: selectedTab.tabId || -1,
-      windowId: selectedTab.windowId || -1,
-      url: selectedTab.url,
-      itemType: selectedTab.type,
-      sessionId: selectedTab.sessionId
-    };
+    const request: SwitchTabRequest =
+      selectedTab.type === 'closed_tab' && selectedTab.sessionId
+        ? {
+          type: MESSAGE_TYPES.SWITCH_TAB,
+          itemType: 'closed_tab',
+          sessionId: selectedTab.sessionId
+        }
+        : (selectedTab.type === 'bookmark' || selectedTab.type === 'history')
+          ? {
+            type: MESSAGE_TYPES.SWITCH_TAB,
+            itemType: selectedTab.type,
+            url: selectedTab.url
+          }
+          : {
+            type: MESSAGE_TYPES.SWITCH_TAB,
+            itemType: 'tab',
+            tabId: selectedTab.tabId ?? -1,
+            windowId: selectedTab.windowId ?? -1
+          };
 
     chrome.runtime.sendMessage(request, (response: Response<{ success: boolean }>) => {
       if (response && response.ok === false) {

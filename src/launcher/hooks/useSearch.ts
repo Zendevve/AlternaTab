@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { RankedItemResult } from '../../shared/types';
 import { MESSAGE_TYPES, SearchAssetsRequest, SearchAssetsResponse } from '../../shared/messages';
-import { rankResults } from '../lib/ranking';
 
 export function useSearch(query: string) {
   const [results, setResults] = useState<RankedItemResult[]>([]);
@@ -17,7 +16,7 @@ export function useSearch(query: string) {
         console.error('[useSearch] Failed to fetch:', response);
         setError(response?.ok === false ? response.error : 'Network error');
       } else {
-        setResults(rankResults(query, response.data.results));
+        setResults(response.data.results);
         setError(null);
       }
       setLoading(false);
