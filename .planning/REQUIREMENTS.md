@@ -1,47 +1,93 @@
-# Requirements
+# Requirements: alternatab (TabSwitcher)
 
-## Phase 0
-- **REQ-001**: Persist MRU safely (survive service worker restart, prune stale tabs, consistent ranking)
-- **REQ-002**: Build a typed runtime message router (centralize messages, discriminated unions, standard responses)
-- **REQ-003**: Introduce logging conventions (debug, info, warn, error)
-- **REQ-004**: Harden launcher window lifecycle (one launcher at a time, center on display, clear ID on close)
-- **REQ-005**: Add tests for ranking and MRU (deterministic behavior, tie-breaking rules)
+**Defined:** 2026-05-26
+**Core Value:** Instant, keyboard-driven navigation between recently-active browser tabs with minimal latency (<80ms P50) and zero mouse dependency.
 
-## Phase 1
-- **REQ-101**: Refactor search into a real ranking engine (stable tie-breakers, documented weights)
-- **REQ-102**: Improve result rendering (favicon fallback, formatting, badges)
-- **REQ-103**: Improve keyboard UX (Enter, Esc, Cmd/Ctrl 1-9, wrap-around, scroll)
-- **REQ-104**: Add loading, empty, and error states (no blank UI, user-facing fallbacks)
+## v1 Requirements
 
-## Phase 2
-- **REQ-201**: Introduce action architecture (switch, close, pin, unpin, duplicate, copy_url, move_to_new_window, mute, unmute)
-- **REQ-202**: Implement tab actions (background handlers)
-- **REQ-203**: Add action UI (keyboard shortcuts, footer hints)
+### Hotkey & Activation
 
-## Phase 3
-- **REQ-301**: Introduce a unified result type (tabs, closed, bookmarks, history, workspaces)
-- **REQ-302**: Add recently closed tabs (sessions API)
-- **REQ-303**: Add bookmarks search (bookmarks API)
-- **REQ-304**: Add history search (history API, intelligent querying)
-- **REQ-305**: Introduce result source ranking policy
+- [ ] **FR-001**: Hotkey triggers switcher overlay on Alt+Q (default, configurable via Options). Works across normal pages, but displays a notification toast when triggered on restricted pages (e.g. `chrome://`, Chrome Web Store).
 
-## Phase 4
-- **REQ-401**: Track selection history
-- **REQ-402**: Add learning-based ranking boosts
-- **REQ-403**: Add domain aliases (gh, yt, mail, fig, jira, docs, cal)
+### Overlay Display & UI
 
-## Phase 5
-- **REQ-501**: Add workspace model
-- **REQ-502**: Save workspace command
-- **REQ-503**: Restore workspace
-- **REQ-504**: Show workspaces in search results
+- [ ] **FR-002**: Overlay displays N most-recently-used tabs (default N=9, configurable range 3-15). Each tab card shows a 16x16px favicon (with fallback letter avatar), a truncated page title (max 40 chars), a truncated domain name (max 30 chars), active selection indicator, and window badges for cross-window tabs. Positioned centered on screen.
 
-## Phase 6
-- **REQ-601**: Add parser for command mode (`>` trigger)
-- **REQ-602**: Add command result provider
+### Navigation
 
-## Phase 7
-- **REQ-701**: Duplicate tab detection
-- **REQ-702**: Domain-specific actions
-- **REQ-703**: Session timeline
-- **REQ-704**: Plugin architecture
+- [ ] **FR-003**: Alt+Q cycles selection forward (wraps around). Alt+Shift+Q cycles selection backward. Keyboard arrow keys (left/right/up/down) navigate the grid/list card layout. Escape cancels, Enter or Space confirms. Mouse hover highlights cards, and mouse click switches immediately.
+
+### Tab Switch Logic
+
+- [ ] **FR-004**: Confirming a selection switches focus to the target tab (`chrome.tabs.update`) and activates its window if cross-window (`chrome.windows.update`). After switching, the new active tab moves to index 0 of the MRU list, and the previous tab becomes index 1.
+
+### Dismiss & Modes
+
+- [ ] **FR-005**: Activation modes supported:
+  - **Hold Mode (Default)**: Overlay remains visible while `Alt` is held down; releasing the `Alt` key triggers immediate tab switch to the highlighted card.
+  - **Toggle Mode**: Alt+Q opens overlay and stays open after releasing keys; requires Enter/Space or click to confirm selection and switch. Clicking outside the overlay cancels both modes.
+
+### MRU Recency Tracking
+
+- [ ] **FR-006**: Background worker monitors tab activations (`chrome.tabs.onActivated`, `onCreated`, `onRemoved`). The MRU tab list is saved to local storage with a maximum capacity of 50 tab IDs. Stale or closed tab IDs are pruned on each overlay open.
+
+### Options & Customization
+
+- [ ] **FR-007**: Options page enables customization of `maxVisible` (3-15), `activationMode` ("hold" | "toggle"), `theme` ("auto" | "light" | "dark"), `showWindowBadge` (boolean), and `cardLayout` ("grid" | "list"). All settings persist in sync storage.
+- [ ] **FR-008**: Small browser action popup (300x200px) displays extension name, current hotkey, quick settings toggle for Hold/Toggle mode, and links to Options page and native Chrome hotkey shortcuts manager.
+
+### Privacy & Incognito
+
+- [ ] **FR-009**: Under incognito tabs (configured as split mode), MRU lists are kept strictly in `storage.session` and never persisted to local or synced storage. The list is entirely cleared when private windows close. Zero analytics or external communication.
+
+### Non-Functional Requirements
+
+- [ ] **NFR-001**: Overlay first paint and display must occur within 80ms P50 and 200ms P99 of the keyboard shortcut trigger.
+- [ ] **NFR-002**: Background service worker memory footprint must be under 5MB during operation.
+- [ ] **NFR-003**: Zero data loss of MRU list on browser crash (written to storage immediately after tab activation).
+- [ ] **NFR-005**: All UI elements are fully keyboard-accessible with proper tabIndex and ARIA roles for accessibility.
+- [ ] **NFR-006**: 100% local operation with no network requests or external trackers.
+- [ ] **NFR-007**: Content Security Policy restricts any `unsafe-inline` or `unsafe-eval` executions. Closed Shadow DOM prevents host page data exfiltration or CSS bleeding.
+
+## v2 Requirements (Deferred)
+
+- **TAB-GRP**: Tab groups integration (visually grouping tabs inside the overlay).
+- **SYNC-MRU**: Syncing MRU recency lists across multiple devices.
+- **THUMB-PREV**: Tab preview screenshots/thumbnails.
+- **FUZ-SRCH**: Fuzzy find / text search input within the overlay.
+
+## Out of Scope
+
+| Feature | Reason |
+|---------|--------|
+| Multi-Browser Support | Focus entirely on Chrome MV3 for initial stable release. |
+| Custom Themes | Auto dark/light covers 95% of use-cases with minimal footprint. |
+
+## Traceability
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| FR-001 | Phase 3 | Pending |
+| FR-002 | Phase 2 | Pending |
+| FR-003 | Phase 2 | Pending |
+| FR-004 | Phase 1 | Pending |
+| FR-005 | Phase 2 | Pending |
+| FR-006 | Phase 1 | Pending |
+| FR-007 | Phase 4 | Pending |
+| FR-008 | Phase 4 | Pending |
+| FR-009 | Phase 3 | Pending |
+| NFR-001 | Phase 6 | Pending |
+| NFR-002 | Phase 6 | Pending |
+| NFR-003 | Phase 1 | Pending |
+| NFR-005 | Phase 5 | Pending |
+| NFR-006 | Phase 3 | Pending |
+| NFR-007 | Phase 2 | Pending |
+
+**Coverage:**
+- v1 requirements: 15 total
+- Mapped to phases: 15
+- Unmapped: 0 ✓
+
+---
+*Requirements defined: 2026-05-26*
+*Last updated: 2026-05-26 after initial definition*
