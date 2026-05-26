@@ -6,8 +6,8 @@ TabSwitcher (packaged as `alternatab`) brings OS-style Alt+Tab keyboard switchin
 
 ## Phases
 
-- [ ] **Phase 1: Project Setup & Core Infrastructure** - Configure the extension Vite bundling pipeline and write the core tab adapter, storage, and tracking logic.
-- [ ] **Phase 2: Content Script & Overlay UI** - Implement the isolated Shadow DOM overlay card renderer, keyboard key cycling state machine, and glassmorphism styling.
+- [x] **Phase 1: Project Setup & Core Infrastructure** - Configure the extension Vite bundling pipeline and write the core tab adapter, storage, and tracking logic.
+- [x] **Phase 2: Content Script & Overlay UI** - Implement the isolated Shadow DOM overlay card renderer, keyboard key cycling state machine, and glassmorphism styling.
 - [ ] **Phase 3: Service Worker & Background Wiring** - Wire up background message routers, hotkey commands, stale tab pruning alarms, and split-incognito separation.
 - [ ] **Phase 4: Settings UI & Quick Action Popup** - Create the sync options page and the lightweight action popup for configuration toggles.
 - [ ] **Phase 5: First-Run Onboarding & Accessibility** - Build the first-install interactive welcome wizard and implement WCAG 2.2 accessibility keyboard focus and ARIA roles.
@@ -39,9 +39,7 @@ TabSwitcher (packaged as `alternatab`) brings OS-style Alt+Tab keyboard switchin
   2. Alt+Q/Alt+Shift+Q and arrow keys correctly cycle active selection on screen with visual highlights.
   3. Light/dark themes and list/grid layouts look beautiful and scale correctly on different display sizes.
 **Plans**:
-- [ ] 02-01: Build content script to inject closed Shadow DOM and render the basic overlay HTML structure.
-- [ ] 02-02: Implement KeyHandler to catch page keyboard events and handle selection cycling.
-- [ ] 02-03: Write overlay.css vanilla CSS with tailored glassmorphic styles, themes, and selection animations.
+- [x] 02-01: Build content script closed Shadow DOM, overlay vanilla css glassmorphic layout, and navigation KeyHandler with tests.
 
 ### Phase 3: Service Worker & Background Wiring
 **Goal**: Implement Service Worker message bus, capture global commands, route hotkey events to active tab content scripts, and handle incognito sandboxing.
@@ -107,7 +105,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Project Setup & Core Infrastructure | 2/2 | Complete | 2026-05-26 |
-| 2. Content Script & Overlay UI | 0/3 | Not started | - |
+| 2. Content Script & Overlay UI | 1/1 | Complete | 2026-05-26 |
 | 3. Service Worker & Background Wiring | 0/2 | Not started | - |
 | 4. Settings UI & Quick Action Popup | 0/2 | Not started | - |
 | 5. First-Run Onboarding & Accessibility | 0/2 | Not started | - |
