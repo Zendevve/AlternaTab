@@ -9,7 +9,7 @@ TabSwitcher (packaged as `alternatab`) brings OS-style Alt+Tab keyboard switchin
 - [x] **Phase 1: Project Setup & Core Infrastructure** - Configure the extension Vite bundling pipeline and write the core tab adapter, storage, and tracking logic.
 - [x] **Phase 2: Content Script & Overlay UI** - Implement the isolated Shadow DOM overlay card renderer, keyboard key cycling state machine, and glassmorphism styling.
 - [x] **Phase 3: Service Worker & Background Wiring** - Wire up background message routers, hotkey commands, stale tab pruning alarms, and split-incognito separation.
-- [ ] **Phase 4: Settings UI & Quick Action Popup** - Create the sync options page and the lightweight action popup for configuration toggles.
+- [x] **Phase 4: Settings UI & Quick Action Popup** - Create the sync options page and the lightweight action popup for configuration toggles. (completed 2026-05-26)
 - [ ] **Phase 5: First-Run Onboarding & Accessibility** - Build the first-install interactive welcome wizard and implement WCAG 2.2 accessibility keyboard focus and ARIA roles.
 - [ ] **Phase 6: Automated Testing & Performance QA** - Implement Vitest unit/integration tests and Playwright E2E browser tests to verify performance and correctness.
 - [ ] **Phase 7: Production Release Prep** - Complete optimized build compiling, manifest audit checks, zip packaging, and Chrome Web Store listing assets.
@@ -106,7 +106,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 1. Project Setup & Core Infrastructure | 2/2 | Complete | 2026-05-26 |
 | 2. Content Script & Overlay UI | 1/1 | Complete | 2026-05-26 |
 | 3. Service Worker & Background Wiring | 1/1 | Complete | 2026-05-26 |
-| 4. Settings UI & Quick Action Popup | 0/2 | Not started | - |
+| 4. Settings UI & Quick Action Popup | 0/2 | Complete    | 2026-05-26 |
 | 5. First-Run Onboarding & Accessibility | 0/2 | Not started | - |
 | 6. Automated Testing & Performance QA | 0/2 | Not started | - |
 | 7. Production Release Prep | 0/1 | Not started | - |

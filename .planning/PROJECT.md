@@ -12,27 +12,26 @@ Instant, keyboard-driven navigation between recently-active browser tabs with mi
 
 ### Validated
 
-(None yet — ship to validate)
+- **FR-001**: Hotkey Activation (Alt+Q default, configurable, disabled on chrome:// and CWS pages) - Validated in Phase 3
+- **FR-002**: Overlay Display (centered floating panel, max N MRU tabs, favicons, titles, domains, active indicator, cross-window index badges) - Validated in Phase 2
+- **FR-003**: Navigation (Alt+Q cycles, Alt+Shift+Q reverses, Arrows navigate, Enter/Space confirms, Esc cancels, mouse hover/click) - Validated in Phase 2
+- **FR-004**: Switching Behavior (activates selected tab + focuses window, moves selected to top of MRU, closes overlay) - Validated in Phase 1
+- **FR-005**: Dismiss Behavior (Hold mode: dismisses/switches on Alt release; Toggle mode: stays open until Enter/click) - Validated in Phase 2
+- **FR-006**: MRU Tracking (tracks activations, prunes closed/stale tabs, persists to storage, max 50 entries) - Validated in Phase 1
+- **FR-007**: Options / Settings (maxVisible 3-15, activationMode hold/toggle, theme auto/light/dark, layout grid/list, showWindowBadge) - Validated in Phase 4
+- **FR-008**: Popup Interface (popup.html with quick mode toggles, shortcut display, links to options page and chrome shortcut manager) - Validated in Phase 4
+- **FR-009**: Incognito Support (split mode support, stores MRU only in storage.session, prunes on close, zero leaks to sync/local) - Validated in Phase 3
+- **NFR-003**: Reliability (zero MRU data loss on browser crash, written after each activation) - Validated in Phase 1
+- **NFR-006**: Privacy (100% local, no network requests, no analytics in v1.0) - Validated in Phase 3
+- **NFR-007**: Security (strict CSP: no unsafe-inline, no unsafe-eval, isolated closed Shadow DOM, textContent only to prevent XSS) - Validated in Phase 2
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-- [ ] **FR-001**: Hotkey Activation (Alt+Q default, configurable, disabled on chrome:// and CWS pages)
-- [ ] **FR-002**: Overlay Display (centered floating panel, max N MRU tabs, favicons, titles, domains, active indicator, cross-window index badges)
-- [ ] **FR-003**: Navigation (Alt+Q cycles, Alt+Shift+Q reverses, Arrows navigate, Enter/Space confirms, Esc cancels, mouse hover/click)
-- [ ] **FR-004**: Switching Behavior (activates selected tab + focuses window, moves selected to top of MRU, closes overlay)
-- [ ] **FR-005**: Dismiss Behavior (Hold mode: dismisses/switches on Alt release; Toggle mode: stays open until Enter/click)
-- [ ] **FR-006**: MRU Tracking (tracks activations, prunes closed/stale tabs, persists to storage, max 50 entries)
-- [ ] **FR-007**: Options / Settings (maxVisible 3-15, activationMode hold/toggle, theme auto/light/dark, layout grid/list, showWindowBadge)
-- [ ] **FR-008**: Popup Interface (popup.html with quick mode toggles, shortcut display, links to options page and chrome shortcut manager)
-- [ ] **FR-009**: Incognito Support (split mode support, stores MRU only in storage.session, prunes on close, zero leaks to sync/local)
 - [ ] **NFR-001**: Performance (overlay first paint <80ms P50, <200ms P99)
 - [ ] **NFR-002**: Resource Footprint (background service worker memory footprint <5MB)
-- [ ] **NFR-003**: Reliability (zero MRU data loss on browser crash, written after each activation)
 - [ ] **NFR-005**: Accessibility (all items keyboard accessible, proper tabIndex and ARIA roles)
-- [ ] **NFR-006**: Privacy (100% local, no network requests, no analytics in v1.0)
-- [ ] **NFR-007**: Security (strict CSP: no unsafe-inline, no unsafe-eval, isolated closed Shadow DOM, textContent only to prevent XSS)
 
 ### Out of Scope
 
@@ -63,9 +62,11 @@ Instant, keyboard-driven navigation between recently-active browser tabs with mi
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Closed Shadow DOM | Prevent host page scripts from reading switcher DOM or hijacking inputs | — Pending |
-| Adapter Pattern | Decouple tab logic from browser APIs for 100% unit-testability | — Pending |
-| Split Incognito | Ensure strict sandbox isolation for private tabs, session storage only | — Pending |
+| Closed Shadow DOM | Prevent host page scripts from reading switcher DOM or hijacking inputs | — Implemented in Phase 2 |
+| Adapter Pattern | Decouple tab logic from browser APIs for 100% unit-testability | — Implemented in Phase 1 |
+| Split Incognito | Ensure strict sandbox isolation for private tabs, session storage only | — Implemented in Phase 3 |
+| Glassmorphism Theme | Vanilla HSL variables styling for options & popup to feel premium | — Implemented in Phase 4 |
+| JSDOM Unit Testing | Run lightweight and fast in-memory DOM unit tests with Vitest | — Implemented in Phase 4 |
 
 ## Evolution
 
@@ -85,4 +86,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-26 after initial milestone definition*
+*Last updated: 2026-05-26 after Phase 4 completion*
