@@ -60,8 +60,8 @@ TabSwitcher (packaged as `alternatab`) brings OS-style Alt+Tab keyboard switchin
   1. Options page reads/writes UserSettings to sync storage and changes take effect instantly.
   2. Toolbar action popup successfully displays active settings and launches shortcut configuration page.
 **Plans**:
-- [ ] 04-01: Design and implement the full Options page (options.html, options.css, options.ts).
-- [ ] 04-02: Design and implement the lightweight action popup (popup.html, popup.css, popup.ts).
+- [x] 04-01: Design and implement the full Options page (options.html, options.css, options.ts).
+- [x] 04-02: Design and implement the lightweight action popup (popup.html, popup.css, popup.ts).
 
 ### Phase 5: First-Run Onboarding & Accessibility
 **Goal**: Build onboarding walkthrough on first install and audit interactive elements to exceed WCAG 2.2 accessibility guidelines.
@@ -106,7 +106,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 1. Project Setup & Core Infrastructure | 2/2 | Complete | 2026-05-26 |
 | 2. Content Script & Overlay UI | 1/1 | Complete | 2026-05-26 |
 | 3. Service Worker & Background Wiring | 1/1 | Complete | 2026-05-26 |
-| 4. Settings UI & Quick Action Popup | 0/2 | Complete    | 2026-05-26 |
+| 4. Settings UI & Quick Action Popup | 1/1 | Complete    | 2026-05-26 |
 | 5. First-Run Onboarding & Accessibility | 0/2 | Not started | - |
 | 6. Automated Testing & Performance QA | 0/2 | Not started | - |
 | 7. Production Release Prep | 0/1 | Not started | - |
