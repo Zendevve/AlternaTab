@@ -27,10 +27,8 @@ TabSwitcher (packaged as `alternatab`) brings OS-style Alt+Tab keyboard switchin
   2. Tab recency order is accurately tracked in memory and saved to/restored from local storage.
   3. All tab queries and activations are decoupled via the adapter pattern, making them fully testable via a mock adapter.
 **Plans**:
-- [ ] 01-01: Scaffold project directories and write basic files (manifest.json, package.json, vite.config.ts).
-- [ ] 01-02: Implement StorageManager with full sync, local, and session storage interfaces.
-- [ ] 01-03: Implement MRUTracker to record tab focus recency and manage tab ID lists.
-- [ ] 01-04: Implement TabAdapter interface along with ChromeTabAdapter and MockTabAdapter.
+- [x] 01-01: Scaffold project layout, configs, and implement StorageManager settings/MRU isolation.
+- [x] 01-02: Implement abstract TabAdapter (Chrome/Mock) and MRUTracker recency tracker.
 
 ### Phase 2: Content Script & Overlay UI
 **Goal**: Build the floating overlay rendered inside an isolated, closed Shadow DOM, implementing fast selection highlights, key cycle navigation, and fluid animations.
@@ -108,7 +106,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Project Setup & Core Infrastructure | 0/4 | Not started | - |
+| 1. Project Setup & Core Infrastructure | 2/2 | Complete | 2026-05-26 |
 | 2. Content Script & Overlay UI | 0/3 | Not started | - |
 | 3. Service Worker & Background Wiring | 0/2 | Not started | - |
 | 4. Settings UI & Quick Action Popup | 0/2 | Not started | - |
