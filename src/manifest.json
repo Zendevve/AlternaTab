@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "alternaTab",
+  "version": "1.0.0",
+  "description": "Alt+Tab keyboard switcher for Chrome tabs.",
+  "permissions": [
+    "tabs",
+    "storage"
+  ],
+  "background": {
+    "service_worker": "src/background/index.ts",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "src/popup/index.html"
+  },
+  "options_ui": {
+    "page": "src/options/index.html",
+    "open_in_tab": true
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "alternatab",
+  "version": "1.0.0",
+  "description": "Alt+Tab for the Browser",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.268",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.11",
+    "vite-plugin-web-extension": "^4.1.3",
+    "vitest": "^1.6.0"
+  }
+}
