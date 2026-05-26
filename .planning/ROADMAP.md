@@ -8,7 +8,7 @@ TabSwitcher (packaged as `alternatab`) brings OS-style Alt+Tab keyboard switchin
 
 - [x] **Phase 1: Project Setup & Core Infrastructure** - Configure the extension Vite bundling pipeline and write the core tab adapter, storage, and tracking logic.
 - [x] **Phase 2: Content Script & Overlay UI** - Implement the isolated Shadow DOM overlay card renderer, keyboard key cycling state machine, and glassmorphism styling.
-- [ ] **Phase 3: Service Worker & Background Wiring** - Wire up background message routers, hotkey commands, stale tab pruning alarms, and split-incognito separation.
+- [x] **Phase 3: Service Worker & Background Wiring** - Wire up background message routers, hotkey commands, stale tab pruning alarms, and split-incognito separation.
 - [ ] **Phase 4: Settings UI & Quick Action Popup** - Create the sync options page and the lightweight action popup for configuration toggles.
 - [ ] **Phase 5: First-Run Onboarding & Accessibility** - Build the first-install interactive welcome wizard and implement WCAG 2.2 accessibility keyboard focus and ARIA roles.
 - [ ] **Phase 6: Automated Testing & Performance QA** - Implement Vitest unit/integration tests and Playwright E2E browser tests to verify performance and correctness.
@@ -50,8 +50,7 @@ TabSwitcher (packaged as `alternatab`) brings OS-style Alt+Tab keyboard switchin
   2. Incognito window tabs are tracked isolated in session storage and fully pruned when closed, leaving zero footprint.
   3. Restricting pages (chrome:// and CWS) are caught gracefully, displaying a notification toast instead of throwing errors.
 **Plans**:
-- [ ] 03-01: Implement CommandRouter and MessageBus to manage runtime message streams.
-- [ ] 03-02: Implement background alarms for periodic pruning and handle separate incognito session storage tracking.
+- [x] 03-01: Implement Service Worker messaging routing, global commands, periodic maintenance alarms, and unit tests.
 
 ### Phase 4: Settings UI & Quick Action Popup
 **Goal**: Build Options dashboard and lightweight toolbar popup to give users immediate toggle control over preferences and hotkeys.
@@ -106,7 +105,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 |-------|----------------|--------|-----------|
 | 1. Project Setup & Core Infrastructure | 2/2 | Complete | 2026-05-26 |
 | 2. Content Script & Overlay UI | 1/1 | Complete | 2026-05-26 |
-| 3. Service Worker & Background Wiring | 0/2 | Not started | - |
+| 3. Service Worker & Background Wiring | 1/1 | Complete | 2026-05-26 |
 | 4. Settings UI & Quick Action Popup | 0/2 | Not started | - |
 | 5. First-Run Onboarding & Accessibility | 0/2 | Not started | - |
 | 6. Automated Testing & Performance QA | 0/2 | Not started | - |
