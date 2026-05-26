@@ -12,7 +12,7 @@ TabSwitcher (packaged as `alternatab`) brings OS-style Alt+Tab keyboard switchin
 - [x] **Phase 4: Settings UI & Quick Action Popup** - Create the sync options page and the lightweight action popup for configuration toggles. (completed 2026-05-26)
 - [x] **Phase 5: First-Run Onboarding & Accessibility** - Build the first-install interactive welcome wizard and implement WCAG 2.2 accessibility keyboard focus and ARIA roles. (completed 2026-05-26)
 - [x] **Phase 6: Automated Testing & Performance QA** - Implement Vitest unit/integration tests and Playwright E2E browser tests to verify performance and correctness. (completed 2026-05-26)
-- [ ] **Phase 7: Production Release Prep** - Complete optimized build compiling, manifest audit checks, zip packaging, and Chrome Web Store listing assets.
+- [x] **Phase 7: Production Release Prep** - Complete optimized build compiling, manifest audit checks, zip packaging, and Chrome Web Store listing assets. (completed 2026-05-26)
 
 ---
 
@@ -92,7 +92,7 @@ TabSwitcher (packaged as `alternatab`) brings OS-style Alt+Tab keyboard switchin
   1. Bundle contains zero console logs, source maps, or inline code scripts.
   2. Release zip packages successfully and is fully ready for Chrome Web Store submission.
 **Plans**:
-- [ ] 07-01: Perform final bundle optimization, manifest verification, zip bundling, and list-ready checklists.
+- [x] 07-01: Perform final bundle optimization, manifest verification, zip bundling, and list-ready checklists.
 
 ---
 
@@ -109,4 +109,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 4. Settings UI & Quick Action Popup | 1/1 | Complete    | 2026-05-26 |
 | 5. First-Run Onboarding & Accessibility | 2/2 | Complete    | 2026-05-26 |
 | 6. Automated Testing & Performance QA | 2/2 | Complete | 2026-05-26 |
-| 7. Production Release Prep | 0/1 | Not started | - |
+| 7. Production Release Prep | 1/1 | Complete | 2026-05-26 |
