@@ -29,6 +29,13 @@ tracker.initialize().catch((err) => {
   console.error("MRUTracker initialization failed:", err);
 });
 
+// Open onboarding walkthrough on first install
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason === "install") {
+    chrome.tabs.create({ url: "src/onboarding/index.html" });
+  }
+});
+
 // Setup command router
 chrome.commands.onCommand.addListener(async (command) => {
   if (command === "toggle-switcher") {

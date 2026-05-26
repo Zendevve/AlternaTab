@@ -65,14 +65,27 @@ class OverlayController {
 
     this.listContainer = document.createElement("div");
     this.listContainer.className = "alternatab-list";
+    this.listContainer.setAttribute("role", "listbox");
+    this.listContainer.setAttribute("aria-label", "Recent Tabs Switcher");
+    this.listContainer.setAttribute("tabindex", "0");
 
     this.container.appendChild(header);
     this.container.appendChild(this.listContainer);
     this.backdrop.appendChild(this.container);
     this.shadow.appendChild(this.backdrop);
 
-    // Inject globally into DOM
-    document.body.appendChild(this.host);
+    // Inject globally into DOM when body is available
+    if (this.host) {
+      if (document.body) {
+        document.body.appendChild(this.host);
+      } else {
+        document.addEventListener("DOMContentLoaded", () => {
+          if (this.host) {
+            document.body.appendChild(this.host);
+          }
+        });
+      }
+    }
   }
 
   private listenToMessages(): void {
@@ -150,6 +163,8 @@ class OverlayController {
       const card = document.createElement("div");
       card.className = `alternatab-card${isActive ? " active" : ""}`;
       card.id = `alternatab-card-${tab.id}`;
+      card.setAttribute("role", "option");
+      card.setAttribute("aria-selected", isActive ? "true" : "false");
 
       // Bind Mouse Handlers for natural high-fidelity hovering
       card.addEventListener("mouseenter", () => {
@@ -218,6 +233,7 @@ class OverlayController {
         behavior: "smooth",
         block: "nearest",
       });
+      listContainer.setAttribute("aria-activedescendant", activeElement.id);
     }
   }
 

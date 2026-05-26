@@ -10,6 +10,7 @@ export default defineConfig({
   plugins: [
     webExtension({
       manifest: getManifest,
+      additionalInputs: ["src/onboarding/index.html"],
     }),
   ],
   resolve: {
@@ -17,4 +18,11 @@ export default defineConfig({
       "@": "/src",
     },
   },
+  build: {
+    sourcemap: false,
+  },
+  esbuild: {
+    drop: ["console", "debugger"],
+  },
 });
+

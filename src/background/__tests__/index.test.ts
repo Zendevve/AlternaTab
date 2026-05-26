@@ -34,6 +34,9 @@ vi.stubGlobal("chrome", {
     onMessage: {
       addListener: mockRuntimeAddListener,
     },
+    onInstalled: {
+      addListener: vi.fn(),
+    },
     lastError: null,
   },
   alarms: {
@@ -47,6 +50,7 @@ vi.stubGlobal("chrome", {
   },
   tabs: {
     sendMessage: mockSendMessage,
+    create: vi.fn(),
     query: vi.fn((queryInfo, cb) => cb?.([])),
     update: vi.fn((tabId, updateProperties, cb) => cb?.({ id: tabId })),
     onActivated: { addListener: vi.fn() },

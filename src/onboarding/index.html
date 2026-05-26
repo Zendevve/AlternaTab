@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to alternaTab - Quick Start Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./index.css">
+</head>
+<body>
+  <div class="onboarding-bg-effects">
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+  </div>
+
+  <main class="onboarding-wrapper">
+    <div class="onboarding-card">
+      <!-- Steps Tracker -->
+      <header class="wizard-header">
+        <div class="logo-area">
+          <span class="logo-icon">⇆</span>
+          <span class="logo-text">alternaTab</span>
+        </div>
+        <div class="steps-indicator" role="progressbar" aria-valuemin="1" aria-valuemax="3" aria-valuenow="1" aria-label="Onboarding Progress">
+          <div class="step-dot active" data-step="1" aria-label="Step 1: Setup Mode">1</div>
+          <div class="step-connector"></div>
+          <div class="step-dot" data-step="2" aria-label="Step 2: Interactive Sandbox">2</div>
+          <div class="step-connector"></div>
+          <div class="step-dot" data-step="3" aria-label="Step 3: Global Shortcuts">3</div>
+        </div>
+      </header>
+
+      <!-- Wizard Slide Deck -->
+      <div class="slides-container">
+        
+        <!-- Slide 1: Welcome & Setup Mode -->
+        <section class="wizard-slide active" id="slide-1" aria-labelledby="slide-1-title">
+          <div class="slide-content">
+            <h1 class="slide-title" id="slide-1-title">Supercharge Your Tab Switching</h1>
+            <p class="slide-subtitle">Welcome! alternaTab brings native, keyboard-driven Alt+Tab speed directly to Google Chrome. Let's customize your activation experience first.</p>
+
+            <div class="mode-selector-grid">
+              <!-- Hold Mode Option -->
+              <div class="mode-card selected" id="mode-hold" role="radio" aria-checked="true" tabindex="0">
+                <div class="mode-icon">⏱</div>
+                <div class="mode-info">
+                  <h3 class="mode-name">Hold Mode <span class="badge-recommended">Default</span></h3>
+                  <p class="mode-desc">Hold <kbd>Alt</kbd> and tap <kbd>Q</kbd> to cycle. Release <kbd>Alt</kbd> to switch instantly. Zero mouse clicks.</p>
+                </div>
+              </div>
+
+              <!-- Toggle Mode Option -->
+              <div class="mode-card" id="mode-toggle" role="radio" aria-checked="false" tabindex="0">
+                <div class="mode-icon">👆</div>
+                <div class="mode-info">
+                  <h3 class="mode-name">Toggle Mode</h3>
+                  <p class="mode-desc">Press <kbd>Alt+Q</kbd> to open. Overlay stays open; press <kbd>Enter</kbd> or click to switch. press <kbd>Esc</kbd> to close.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Slide 2: Interactive Playground -->
+        <section class="wizard-slide" id="slide-2" aria-labelledby="slide-2-title">
+          <div class="slide-content">
+            <h1 class="slide-title" id="slide-2-title">Try it in the Sandbox</h1>
+            <p class="slide-subtitle">Practice cycling tabs below. Focus the sandbox, hold <kbd>Alt</kbd> and tap <kbd>Q</kbd> (or use the on-screen controls) to cycle. Release keys to switch!</p>
+
+            <div class="sandbox-area" tabindex="0" id="playground-sandbox" aria-label="Interactive tab switcher playground">
+              <div class="sandbox-badge">Interactive Practice Area (Click to Focus)</div>
+              
+              <!-- Simulated Switcher Overlay -->
+              <div class="simulated-overlay" id="simulated-overlay" role="listbox" aria-label="Simulated Switcher Overlay">
+                <div class="simulated-header">
+                  <span class="sim-title">Tab Switcher (Simulated)</span>
+                  <span class="sim-kbd">Hold Alt + Q to Cycle</span>
+                </div>
+                
+                <div class="simulated-list" id="simulated-list">
+                  <!-- Generated Dynamically by JS -->
+                </div>
+              </div>
+
+              <!-- Inline Instructions Hint -->
+              <div class="sandbox-hints">
+                <span class="hint-item"><kbd>Alt+Q</kbd> Cycle Forward</span>
+                <span class="hint-item"><kbd>Alt+Shift+Q</kbd> Cycle Backward</span>
+                <span class="hint-item"><kbd>Enter</kbd> Confirm Switch</span>
+              </div>
+            </div>
+            
+            <div id="switch-toast" class="toast-notification hidden">Switched to Tab!</div>
+          </div>
+        </section>
+
+        <!-- Slide 3: Global Hotkeys Activation -->
+        <section class="wizard-slide" id="slide-3" aria-labelledby="slide-3-title">
+          <div class="slide-content">
+            <h1 class="slide-title" id="slide-3-title">Configure Global Access</h1>
+            <p class="slide-subtitle">Chrome sandboxes extensions by default. To use alternaTab across all your open windows, click below to open Chrome's Shortcuts Manager and verify <kbd>Alt+Q</kbd> is active.</p>
+
+            <div class="shortcuts-instructions-card">
+              <div class="instruction-row">
+                <span class="step-number-badge">1</span>
+                <div class="instruction-details">
+                  <h4>Open Chrome Shortcuts Manager</h4>
+                  <p>Click the button below to launch the native page.</p>
+                </div>
+              </div>
+              <div class="instruction-row">
+                <span class="step-number-badge">2</span>
+                <div class="instruction-details">
+                  <h4>Find alternaTab</h4>
+                  <p>Locate "Open Tab Switcher Overlay" in the list of extensions.</p>
+                </div>
+              </div>
+              <div class="instruction-row">
+                <span class="step-number-badge">3</span>
+                <div class="instruction-details">
+                  <h4>Set to "Global" <span class="badge-recommended">Crucial</span></h4>
+                  <p>Ensure the trigger scope is set to <strong>Global</strong> (allows switching even when Chrome is unfocused or overlay is minimized).</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="action-btn-row">
+              <button class="btn-primary" id="btn-open-shortcuts">Configure Chrome Shortcuts ↗</button>
+            </div>
+          </div>
+        </section>
+        
+      </div>
+
+      <!-- Footer Action Buttons -->
+      <footer class="wizard-footer">
+        <button class="btn-secondary invisible" id="btn-back" aria-label="Go Back">Back</button>
+        <div class="toast-save-indicator" id="toast-saved">Settings auto-saved!</div>
+        <button class="btn-primary" id="btn-next" aria-label="Next Step">Next</button>
+      </footer>
+    </div>
+  </main>
+
+  <script src="./index.ts" type="module"></script>
+</body>
+</html>

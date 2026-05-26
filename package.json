@@ -7,9 +7,13 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "npm run build && playwright test",
+    "package": "npm run build && powershell -Command \"New-Item -ItemType Directory -Force -Path release; Compress-Archive -Path dist\\* -DestinationPath release\\alternatab-v1.0.0.zip -Force\"",
+    "verify:release": "node scripts/verify-release.js"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@types/chrome": "^0.0.268",
     "typescript": "^5.4.5",
     "vite": "^5.2.11",
