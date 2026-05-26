@@ -10,8 +10,8 @@ TabSwitcher (packaged as `alternatab`) brings OS-style Alt+Tab keyboard switchin
 - [x] **Phase 2: Content Script & Overlay UI** - Implement the isolated Shadow DOM overlay card renderer, keyboard key cycling state machine, and glassmorphism styling.
 - [x] **Phase 3: Service Worker & Background Wiring** - Wire up background message routers, hotkey commands, stale tab pruning alarms, and split-incognito separation.
 - [x] **Phase 4: Settings UI & Quick Action Popup** - Create the sync options page and the lightweight action popup for configuration toggles. (completed 2026-05-26)
-- [ ] **Phase 5: First-Run Onboarding & Accessibility** - Build the first-install interactive welcome wizard and implement WCAG 2.2 accessibility keyboard focus and ARIA roles.
-- [ ] **Phase 6: Automated Testing & Performance QA** - Implement Vitest unit/integration tests and Playwright E2E browser tests to verify performance and correctness.
+- [x] **Phase 5: First-Run Onboarding & Accessibility** - Build the first-install interactive welcome wizard and implement WCAG 2.2 accessibility keyboard focus and ARIA roles. (completed 2026-05-26)
+- [x] **Phase 6: Automated Testing & Performance QA** - Implement Vitest unit/integration tests and Playwright E2E browser tests to verify performance and correctness. (completed 2026-05-26)
 - [ ] **Phase 7: Production Release Prep** - Complete optimized build compiling, manifest audit checks, zip packaging, and Chrome Web Store listing assets.
 
 ---
@@ -71,8 +71,8 @@ TabSwitcher (packaged as `alternatab`) brings OS-style Alt+Tab keyboard switchin
   1. Installing extension automatically opens a beautiful 3-step onboarding guide.
   2. Switcher overlay is fully keyboard navigable and screen-reader readable with semantic tags and ARIA labels.
 **Plans**:
-- [ ] 05-01: Build multi-step onboarding wizard inside the Options page.
-- [ ] 05-02: Implement complete keyboard navigation accessibility (tabIndex, focus rings, ARIA roles).
+- [x] 05-01: Build multi-step onboarding wizard inside the Options page.
+- [x] 05-02: Implement complete keyboard navigation accessibility (tabIndex, focus rings, ARIA roles).
 
 ### Phase 6: Automated Testing & Performance QA
 **Goal**: Establish Vitest unit tests and Playwright end-to-end browser tests to assert correct navigation, recency logic, and target render latency.
@@ -82,8 +82,8 @@ TabSwitcher (packaged as `alternatab`) brings OS-style Alt+Tab keyboard switchin
   1. Unit and integration tests cover >90% of business logic with zero failures.
   2. Automated Playwright tests successfully trigger overlay in real Chromium instances and measure launch speed.
 **Plans**:
-- [ ] 06-01: Set up Vitest framework and write unit/integration tests for MRUTracker, StorageManager, and KeyHandler.
-- [ ] 06-02: Set up Playwright browser testing and verify full E2E lifecycle and load rendering speeds.
+- [x] 06-01: Set up Vitest framework and write unit/integration tests for MRUTracker, StorageManager, and KeyHandler.
+- [x] 06-02: Set up Playwright browser testing and verify full E2E lifecycle and load rendering speeds.
 
 ### Phase 7: Production Release Prep
 **Goal**: Compile optimized, source-map-free bundles, audit the manifest, create release packaging, and assemble store listing assets.
@@ -107,6 +107,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 2. Content Script & Overlay UI | 1/1 | Complete | 2026-05-26 |
 | 3. Service Worker & Background Wiring | 1/1 | Complete | 2026-05-26 |
 | 4. Settings UI & Quick Action Popup | 1/1 | Complete    | 2026-05-26 |
-| 5. First-Run Onboarding & Accessibility | 0/2 | Not started | - |
-| 6. Automated Testing & Performance QA | 0/2 | Not started | - |
+| 5. First-Run Onboarding & Accessibility | 2/2 | Complete    | 2026-05-26 |
+| 6. Automated Testing & Performance QA | 2/2 | Complete | 2026-05-26 |
 | 7. Production Release Prep | 0/1 | Not started | - |
