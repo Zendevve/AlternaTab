@@ -77,6 +77,16 @@ export class MRUTracker {
     });
   }
 
+  async pruneStaleTabs(): Promise<void> {
+    const openTabs = await this.adapter.getRecentTabs(500);
+    const openTabIds = new Set(openTabs.map((t) => t.id));
+
+    this.mruList = this.mruList.filter((id) => openTabIds.has(id));
+    this.incognitoMruList = this.incognitoMruList.filter((id) => openTabIds.has(id));
+
+    await this.saveHistory();
+  }
+
   private moveTabToTop(tabId: number, isIncognito: boolean): void {
     const list = isIncognito ? this.incognitoMruList : this.mruList;
     const index = list.indexOf(tabId);
