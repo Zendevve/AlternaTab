@@ -307,11 +307,6 @@ export const App: Component<AppProps> = (props) => {
   // bleed-through to the host page while keeping the results list scrollable.
   createEffect(() => {
     if (!visible()) return;
-    const isInsideScrollableList = (target: EventTarget | null): boolean => {
-      if (!(target instanceof Node)) return false;
-      const el = target as Element | null;
-      return !!el?.closest(".at-results-list");
-    };
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       const handled = keyboardHandler(e);
       if (handled) {
@@ -320,19 +315,21 @@ export const App: Component<AppProps> = (props) => {
       }
     };
     const handleScrollBleed = (e: WheelEvent | TouchEvent) => {
-      if (isInsideScrollableList(e.target)) {
-        // Inside the list: let the list scroll normally, but at scroll edges
-        // block propagation so the page underneath never receives a chained
-        // scroll / overscroll-bounce gesture.
-        const scrollEl = (e.target as Element).closest(".at-results-list") as HTMLElement | null;
-        if (scrollEl) {
-          const atTop = scrollEl.scrollTop <= 0;
-          const atBottom = scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - 1;
-          const goingDown = "deltaY" in e ? e.deltaY > 0 : false;
-          const goingUp = "deltaY" in e ? e.deltaY < 0 : false;
-          if ((atTop && goingUp) || (atBottom && goingDown)) {
-            e.preventDefault();
-          }
+      // composedPath preserves the actual element chain across the shadow
+      // boundary — e.target would be retargeted to #alternatab-host at the
+      // window level, making closest() useless.
+      const path = e.composedPath() as Element[];
+      const listEl = path.find((el) => el?.classList?.contains("at-results-list")) as
+        | HTMLElement
+        | undefined;
+      if (listEl) {
+        const atTop = listEl.scrollTop <= 0;
+        const atBottom = listEl.scrollTop + listEl.clientHeight >= listEl.scrollHeight - 1;
+        const deltaY = "deltaY" in e && typeof e.deltaY === "number" ? e.deltaY : 0;
+        const goingDown = deltaY > 0;
+        const goingUp = deltaY < 0;
+        if ((atTop && goingUp) || (atBottom && goingDown)) {
+          e.preventDefault();
         }
         e.stopPropagation();
         return;
