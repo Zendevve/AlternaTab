@@ -3,7 +3,7 @@
   position: fixed;
   inset: 0;
   z-index: 2147483647;
-  pointer-events: auto;
+  pointer-events: none;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

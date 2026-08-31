@@ -31,7 +31,7 @@ test.describe("AlternaTab NextGen Overlay & Options", () => {
     }
   });
 
-  test("injects content script on webpage", async () => {
+  test("injects content script on webpage without blocking page clicks when closed", async () => {
     const { context } = await createExtensionContext();
 
     try {
@@ -41,6 +41,23 @@ test.describe("AlternaTab NextGen Overlay & Options", () => {
       // Host container should be attached to DOM
       const host = page.locator("#alternatab-host");
       await expect(host).toBeAttached();
+
+      // Verify host does NOT capture pointer events when closed
+      const hostStyles = await page.evaluate(() => {
+        const h = document.getElementById("alternatab-host");
+        if (!h) return null;
+        return {
+          display: window.getComputedStyle(h).display,
+          pointerEvents: window.getComputedStyle(h).pointerEvents,
+        };
+      });
+
+      expect(hostStyles?.pointerEvents).toBe("none");
+      expect(hostStyles?.display).toBe("none");
+
+      // Page link should be clickable
+      const link = page.locator("a");
+      await expect(link).toBeVisible();
     } finally {
       await context.close();
     }

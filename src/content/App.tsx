@@ -13,8 +13,8 @@ import { createKeyboardHandler } from "./hooks/useKeyboard";
 interface AppProps {
   initialVisible?: boolean;
   onClose?: () => void;
+  onVisibilityChange?: (visible: boolean) => void;
 }
-
 export const App: Component<AppProps> = (props) => {
   const [visible, setVisible] = createSignal(props.initialVisible ?? false);
   const [config, setConfig] = createSignal<ExtensionConfig>({ ...DEFAULT_CONFIG });
@@ -302,6 +302,10 @@ export const App: Component<AppProps> = (props) => {
     onCleanup(() => {
       window.removeEventListener("keydown", handleGlobalKeyDown, { capture: true });
     });
+  });
+
+  createEffect(() => {
+    props.onVisibilityChange?.(visible());
   });
 
   onMount(() => {

@@ -27,7 +27,11 @@ export const TabRow: Component<TabRowProps> = (props) => {
     <div
       ref={props.rowRef}
       class={`at-row ${props.selected ? "at-selected" : ""}`}
-      onClick={props.onClick}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        props.onClick();
+      }}
       role="option"
       aria-selected={props.selected}
       tabIndex={props.selected ? 0 : -1}

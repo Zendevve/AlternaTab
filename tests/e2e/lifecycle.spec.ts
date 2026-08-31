@@ -3,7 +3,7 @@ import type { TabItem } from "../../src/types/models";
 import { createExtensionContext } from "./helpers";
 
 test.describe("AlternaTab NextGen Tab Lifecycle & Multi-tab Operations", () => {
-  test("queries, pins, mutes, duplicates, and manages tabs", async () => {
+  test("queries, activates, pins, mutes, and closes tabs", async () => {
     const { context, extensionId } = await createExtensionContext();
 
     try {
@@ -31,6 +31,22 @@ test.describe("AlternaTab NextGen Tab Lifecycle & Multi-tab Operations", () => {
       expect(targetTab).toBeDefined();
 
       if (targetTab) {
+        // Activate tab
+        const activateRes = await page2.evaluate(async (tabId) => {
+          return new Promise<{ ok: boolean }>((resolve) => {
+            chrome.runtime.sendMessage(
+              {
+                id: 105,
+                type: "activateTab",
+                data: { tabId },
+                timestamp: Date.now(),
+              },
+              (res) => resolve(res?.res),
+            );
+          });
+        }, targetTab.id);
+        expect(activateRes?.ok).toBe(true);
+
         // Toggle pin
         const pinRes = await page2.evaluate(async (tabId) => {
           return new Promise<{ ok: boolean; value?: { pinned: boolean } }>((resolve) => {

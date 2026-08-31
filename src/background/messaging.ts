@@ -39,6 +39,7 @@ function collectBookmarks(nodes: chrome.bookmarks.BookmarkTreeNode[], out: Bookm
 
 export function registerBackgroundMessaging(): void {
   onMessage("getTabs", async (message) => {
+    await tabStore.refresh();
     return tabStore.getTabs(message.data);
   });
 

@@ -20,7 +20,8 @@ export function mountOverlay(): { host: HTMLDivElement; shadow: ShadowRoot } {
     position: fixed;
     inset: 0;
     z-index: 2147483647;
-    pointer-events: auto;
+    pointer-events: none;
+    display: none;
   `;
 
   const shadow = host.attachShadow({ mode: "closed" });
@@ -35,7 +36,17 @@ export function mountOverlay(): { host: HTMLDivElement; shadow: ShadowRoot } {
     shadow.appendChild(styleEl);
   }
 
-  disposeApp = render(() => <App />, shadow);
+  const setHostVisible = (isVisible: boolean) => {
+    if (isVisible) {
+      host.style.display = "block";
+      host.style.pointerEvents = "auto";
+    } else {
+      host.style.display = "none";
+      host.style.pointerEvents = "none";
+    }
+  };
+
+  disposeApp = render(() => <App onVisibilityChange={setHostVisible} />, shadow);
 
   document.documentElement.appendChild(host);
   overlayHost = host;
