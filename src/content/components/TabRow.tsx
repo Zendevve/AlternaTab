@@ -28,19 +28,17 @@ export const TabRow: Component<TabRowProps> = (props) => {
     <div
       ref={props.rowRef}
       class={`at-row ${props.selected ? "at-selected" : ""}`}
-      onMouseDown={(e) => {
-        e.preventDefault();
+      on:click={(e: MouseEvent) => {
         e.stopPropagation();
         props.onClick();
       }}
       onClick={(e) => {
-        e.preventDefault();
         e.stopPropagation();
         props.onClick();
       }}
+      on:mouseenter={props.onMouseEnter}
       onMouseEnter={props.onMouseEnter}
-      role="option"
-      aria-selected={props.selected}
+      aria-selected={props.selected ? "true" : "false"}
       tabIndex={props.selected ? 0 : -1}
     >
       <div class="at-row-icon">

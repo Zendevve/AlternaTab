@@ -30,11 +30,17 @@ export const CommandPalette: Component<CommandPaletteProps> = (props) => {
               <div
                 ref={(el) => props.rowRef?.(idx(), el)}
                 class={`at-row ${isSelected() ? "at-selected" : ""}`}
+                on:click={(e: MouseEvent) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  props.onSelect(cmd);
+                }}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   props.onSelect(cmd);
                 }}
+                on:mouseenter={() => props.onHoverCommand?.(idx())}
                 onMouseEnter={() => props.onHoverCommand?.(idx())}
                 role="option"
                 aria-selected={isSelected()}

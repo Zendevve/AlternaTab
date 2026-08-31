@@ -40,14 +40,9 @@ test.describe("AlternaTab NextGen Keyboard & Navigation", () => {
       await page.evaluate(() => {
         window.postMessage({ type: "TOGGLE_ALTERNATAB_OVERLAY" }, "*");
       });
-
-      // Click outside HUD on backdrop
-      await page.evaluate(() => {
-        const h = document.getElementById("alternatab-host");
-        const backdrop = h?.shadowRoot?.querySelector(".at-backdrop") as HTMLElement;
-        backdrop?.click();
-      });
-
+      await page.waitForTimeout(200);
+      await page.mouse.click(50, 50);
+      await page.waitForTimeout(200);
       // Verify closed
       const isClosed = await page.evaluate(() => {
         const h = document.getElementById("alternatab-host");

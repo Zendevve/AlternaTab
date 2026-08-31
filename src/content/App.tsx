@@ -334,10 +334,22 @@ export const App: Component<AppProps> = (props) => {
       chrome.runtime.onMessage.addListener(handleRuntimeMessage);
     }
 
+    const handleWindowMessage = (e: MessageEvent) => {
+      if (e.data?.type === "TOGGLE_ALTERNATAB_OVERLAY") {
+        if (visible()) {
+          closeOverlay();
+        } else {
+          openOverlay();
+        }
+      }
+    };
+    window.addEventListener("message", handleWindowMessage);
+
     onCleanup(() => {
       if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
         chrome.runtime.onMessage.removeListener(handleRuntimeMessage);
       }
+      window.removeEventListener("message", handleWindowMessage);
     });
 
     if (props.initialVisible) {
@@ -354,6 +366,16 @@ export const App: Component<AppProps> = (props) => {
         style={{
           "--at-blur-px": `${config().blurRadiusPx}px`,
         }}
+        on:mousedown={(e: MouseEvent) => {
+          if (e.target === e.currentTarget) {
+            closeOverlay();
+          }
+        }}
+        on:click={(e: MouseEvent) => {
+          if (e.target === e.currentTarget) {
+            closeOverlay();
+          }
+        }}
         onMouseDown={(e) => {
           if (e.target === e.currentTarget) {
             closeOverlay();
@@ -367,6 +389,14 @@ export const App: Component<AppProps> = (props) => {
       >
         <div
           class="at-backdrop"
+          on:mousedown={(e: MouseEvent) => {
+            e.stopPropagation();
+            closeOverlay();
+          }}
+          on:click={(e: MouseEvent) => {
+            e.stopPropagation();
+            closeOverlay();
+          }}
           onMouseDown={(e) => {
             e.stopPropagation();
             closeOverlay();
@@ -382,6 +412,12 @@ export const App: Component<AppProps> = (props) => {
           role="dialog"
           aria-modal="true"
           aria-label="AlternaTab Command HUD"
+          on:mousedown={(e: MouseEvent) => {
+            e.stopPropagation();
+          }}
+          on:click={(e: MouseEvent) => {
+            e.stopPropagation();
+          }}
           onMouseDown={(e) => {
             e.stopPropagation();
           }}

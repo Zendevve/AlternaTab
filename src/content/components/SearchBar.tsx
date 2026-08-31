@@ -44,7 +44,14 @@ export const SearchBar: Component<SearchBarProps> = (props) => {
       <button
         type="button"
         class="at-scope-pill"
-        onClick={props.onCycleScope}
+        on:click={(e: MouseEvent) => {
+          e.stopPropagation();
+          props.onCycleScope();
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          props.onCycleScope();
+        }}
         title="Click or press Tab to cycle search scope"
         aria-label={`Current scope: ${props.scope}. Click to switch.`}
       >

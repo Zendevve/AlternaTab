@@ -1,4 +1,4 @@
-import { render } from "solid-js/web";
+import { delegateEvents, render } from "solid-js/web";
 import overlayCss from "../assets/styles/overlay.css?raw";
 import { App } from "./App";
 
@@ -7,10 +7,8 @@ let disposeApp: (() => void) | null = null;
 
 export function mountOverlay(): { host: HTMLDivElement; shadow: ShadowRoot } {
   if (overlayHost) {
-    return {
-      host: overlayHost,
-      shadow: overlayHost.shadowRoot as unknown as ShadowRoot,
-    };
+    const existingShadow = overlayHost.shadowRoot as unknown as ShadowRoot;
+    return { host: overlayHost, shadow: existingShadow };
   }
 
   const host = document.createElement("div");
@@ -24,7 +22,7 @@ export function mountOverlay(): { host: HTMLDivElement; shadow: ShadowRoot } {
     display: none;
   `;
 
-  const shadow = host.attachShadow({ mode: "closed" });
+  const shadow = host.attachShadow({ mode: "open" });
 
   try {
     const sheet = new CSSStyleSheet();
@@ -35,6 +33,11 @@ export function mountOverlay(): { host: HTMLDivElement; shadow: ShadowRoot } {
     styleEl.textContent = overlayCss;
     shadow.appendChild(styleEl);
   }
+
+  delegateEvents(
+    ["click", "mousedown", "mouseup", "keydown", "input"],
+    shadow as unknown as Document,
+  );
 
   const setHostVisible = (isVisible: boolean) => {
     if (isVisible) {
