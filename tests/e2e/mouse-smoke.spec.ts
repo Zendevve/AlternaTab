@@ -1,12 +1,15 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { createExtensionContext } from "./helpers";
 
 const POLL_INTERVAL_MS = 100;
-const POLL_MAX_ATTEMPTS = 50;
+const POLL_MAX_ATTEMPTS = 80;
 
-async function getSecondRowCoords(page: Page): Promise<{ x: number; y: number } | null> {
+async function getRowCoordsByTabId(
+  page: Page,
+  tabId: number,
+): Promise<{ x: number; y: number } | null> {
   return page.evaluate(
-    ({ interval, attempts }) => {
+    ({ interval, attempts, id }) => {
       const sleep = (ms: number) =>
         new Promise<void>((resolve) => setTimeout(resolve, ms));
       const h = document.getElementById("alternatab-host");
@@ -15,18 +18,50 @@ async function getSecondRowCoords(page: Page): Promise<{ x: number; y: number } 
       if (!shadow) return null;
       return (async (): Promise<{ x: number; y: number } | null> => {
         for (let i = 0; i < attempts; i++) {
-          const rows = shadow.querySelectorAll(".at-row");
-          if (rows.length >= 2) {
-            const targetRow = rows[1] as HTMLElement;
-            const rect = targetRow.getBoundingClientRect();
-            return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+          const row = shadow.querySelector(`[data-tab-id="${id}"]`) as HTMLElement | null;
+          if (row) {
+            const rect = row.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+              return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+            }
           }
           await sleep(interval);
         }
         return null;
       })();
     },
-    { interval: POLL_INTERVAL_MS, attempts: POLL_MAX_ATTEMPTS },
+    { interval: POLL_INTERVAL_MS, attempts: POLL_MAX_ATTEMPTS, id: tabId },
+  );
+}
+
+interface TabInfo {
+  url: string;
+  active: boolean;
+  windowId: number;
+  id: number;
+  title: string;
+}
+
+async function getAllTabs(context: BrowserContext): Promise<TabInfo[]> {
+  const workers = context.serviceWorkers();
+  if (workers.length === 0) return [];
+  const bg = workers[0];
+  if (!bg) return [];
+  return bg.evaluate(
+    () =>
+      new Promise<TabInfo[]>((resolve) => {
+        chrome.tabs.query({}, (tabs) => {
+          resolve(
+            tabs.map((t) => ({
+              url: t.url ?? "",
+              active: !!t.active,
+              windowId: t.windowId,
+              id: t.id ?? 0,
+              title: t.title ?? "",
+            })),
+          );
+        });
+      }),
   );
 }
 
@@ -83,27 +118,42 @@ test.describe("Real Mouse Smoke Test", () => {
       await page1.goto("https://example.com");
 
       const page2 = await context.newPage();
-      await page2.goto("https://example.org");
+      await page2.goto("https://example.org/");
 
       await page1.bringToFront();
 
-      // Capture which page was initially focused.
-      const allPages = context.pages();
-      const initialFocusedUrl = page1.url();
-      expect(initialFocusedUrl).toContain("example.com");
+      // Poll until both example.com and example.org tabs are registered.
+      let tabsBefore: TabInfo[] = [];
+      let exampleOrgBefore: TabInfo | undefined;
+      let exampleComBefore: TabInfo | undefined;
+      for (let i = 0; i < 40; i++) {
+        tabsBefore = await getAllTabs(context);
+        exampleOrgBefore = tabsBefore.find((t) => t.url.includes("example.org"));
+        exampleComBefore = tabsBefore.find((t) => t.url.includes("example.com"));
+        if (exampleOrgBefore && exampleComBefore) break;
+        await new Promise((r) => setTimeout(r, 200));
+      }
+
+      expect(exampleOrgBefore).toBeDefined();
+      expect(exampleComBefore).toBeDefined();
+      expect(exampleComBefore?.active).toBe(true);
+      const orgId = exampleOrgBefore?.id;
+      expect(typeof orgId).toBe("number");
 
       await page1.evaluate(() => {
         window.postMessage({ type: "TOGGLE_ALTERNATAB_OVERLAY" }, "*");
       });
       await page1.waitForTimeout(300);
 
-      const rowBox = await getSecondRowCoords(page1);
+      // Find the row for the specific example.org tab by its tabId, not by
+      // index — sorting/frecency may place it at any position.
+      const rowBox = orgId !== undefined ? await getRowCoordsByTabId(page1, orgId) : null;
       expect(rowBox).not.toBeNull();
 
       if (rowBox) {
-        // Real viewport mouse click on the second tab row.
+        // Real viewport mouse click on the matching tab row.
         await page1.mouse.click(rowBox.x, rowBox.y);
-        await page1.waitForTimeout(800);
+        await page1.waitForTimeout(1200);
 
         const isClosed = await page1.evaluate(() => {
           const h = document.getElementById("alternatab-host");
@@ -111,18 +161,11 @@ test.describe("Real Mouse Smoke Test", () => {
         });
         expect(isClosed).toBe(true);
 
-        // After clicking, page2 (example.org) should be focused.
-        await page2.bringToFront();
-        expect(page2.url()).toContain("example.org");
-
-        // All pages should still be in context.
-        expect(allPages.length).toBeGreaterThanOrEqual(2);
-
-        // The originally focused page (page1 / example.com) is no longer the
-        // active tab after switching.
-        await page1.bringToFront();
-        const stillExampleCom = page1.url();
-        expect(stillExampleCom).toContain("example.com");
+        const tabsAfter = await getAllTabs(context);
+        const exampleOrgAfter = tabsAfter.find((t) => t.id === orgId);
+        expect(exampleOrgAfter).toBeDefined();
+        expect(exampleOrgAfter?.active).toBe(true);
+        expect(exampleOrgAfter?.url).toContain("example.org");
       }
     } finally {
       await context.close();

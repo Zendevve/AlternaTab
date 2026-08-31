@@ -28,6 +28,8 @@ export const TabRow: Component<TabRowProps> = (props) => {
     <div
       ref={props.rowRef}
       class={`at-row ${props.selected ? "at-selected" : ""}`}
+      data-tab-id={props.tab.id}
+      data-tab-domain={props.tab.domain}
       on:click={(e: MouseEvent) => {
         e.stopPropagation();
         props.onClick();
