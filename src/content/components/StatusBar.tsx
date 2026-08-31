@@ -41,9 +41,9 @@ export const StatusBar: Component<StatusBarProps> = (props) => {
       <div class="at-statusbar-hints">
         <For each={hints()}>
           {(hint) => (
-            <span>
+            <span class="at-hint">
               <kbd class="at-kbd">{hint.key}</kbd>
-              {hint.label}
+              <span class="at-hint-label">{hint.label}</span>
             </span>
           )}
         </For>

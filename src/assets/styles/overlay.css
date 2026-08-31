@@ -661,7 +661,7 @@
 .at-statusbar-hints {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   flex-wrap: wrap;
   min-width: 0;
 }
@@ -694,7 +694,7 @@
 .at-hint {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 10.5px;
   color: var(--at-text-muted);
   letter-spacing: -0.005em;
