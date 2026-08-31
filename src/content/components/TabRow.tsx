@@ -1,4 +1,4 @@
-import { type Component, For, Show } from "solid-js";
+import { type Component, createEffect, createSignal, For, Show } from "solid-js";
 import type { TabItem } from "../../types/models";
 import { highlightText } from "../../utils/search";
 
@@ -18,6 +18,12 @@ interface TabRowProps {
 export const TabRow: Component<TabRowProps> = (props) => {
   const titleParts = () => highlightText(props.tab.title, props.query);
   const domainParts = () => highlightText(props.tab.domain, props.query);
+  const [iconFailed, setIconFailed] = createSignal(false);
+
+  createEffect(() => {
+    props.tab.favIconUrl;
+    setIconFailed(false);
+  });
 
   const showOtherWindow = () =>
     Boolean(
@@ -40,7 +46,7 @@ export const TabRow: Component<TabRowProps> = (props) => {
     >
       <div class="at-row-icon">
         <Show
-          when={props.tab.favIconUrl}
+          when={!!props.tab.favIconUrl && !iconFailed()}
           fallback={
             <svg
               width="16"
@@ -62,9 +68,8 @@ export const TabRow: Component<TabRowProps> = (props) => {
             alt=""
             class="at-favicon"
             loading="lazy"
-            onError={(e) => {
-              e.currentTarget.style.display = "none";
-            }}
+            referrerPolicy="no-referrer"
+            onError={() => setIconFailed(true)}
           />
         </Show>
       </div>
