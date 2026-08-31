@@ -1,4 +1,4 @@
-import { type Component, createSignal, onCleanup, onMount, Show } from "solid-js";
+import { type Component, createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
 import { createSearchStore } from "../state/searchStore";
 import type { CommandItem, ExtensionConfig, TabItem } from "../types/models";
 import { sendMessage } from "../types/protocol";
@@ -100,8 +100,8 @@ export const App: Component<AppProps> = (props) => {
     return list[store.selectedIndex()];
   };
 
-  const activateCurrentTab = async () => {
-    const tab = getSelectedTab();
+  const activateCurrentTab = async (targetTab?: TabItem) => {
+    const tab = targetTab ?? getSelectedTab();
     if (!tab) return;
     closeOverlay();
     await sendMessage("activateTab", { tabId: tab.id, windowId: tab.windowId });
@@ -292,6 +292,18 @@ export const App: Component<AppProps> = (props) => {
     clearQuery: () => store.setQuery(""),
   });
 
+  // Global window keydown listener while overlay is visible
+  createEffect(() => {
+    if (!visible()) return;
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      keyboardHandler(e);
+    };
+    window.addEventListener("keydown", handleGlobalKeyDown, { capture: true });
+    onCleanup(() => {
+      window.removeEventListener("keydown", handleGlobalKeyDown, { capture: true });
+    });
+  });
+
   onMount(() => {
     const handleRuntimeMessage = (msg: { type: string }) => {
       if (msg?.type === "TOGGLE_ALTERNATAB_OVERLAY") {
@@ -323,12 +335,9 @@ export const App: Component<AppProps> = (props) => {
   return (
     <Show when={visible()}>
       <div
-        class={themeClass()}
+        class={`at-overlay-root ${themeClass()}`}
         style={{
           "--at-blur-px": `${config().blurRadiusPx}px`,
-        }}
-        onKeyDown={(e) => {
-          keyboardHandler(e);
         }}
       >
         <div
@@ -358,6 +367,9 @@ export const App: Component<AppProps> = (props) => {
             inputRef={(el) => {
               searchInputRef = el;
             }}
+            onKeyDown={(e) => {
+              keyboardHandler(e);
+            }}
           />
 
           <Show
@@ -369,8 +381,9 @@ export const App: Component<AppProps> = (props) => {
                 query={store.parsed().query}
                 domainColors={config().domainColors}
                 activeTabId={store.activeTabId()}
+                focusedWindowId={store.focusedWindowId()}
                 maxRenderedItems={config().maxRenderedItems}
-                onSelectTab={activateCurrentTab}
+                onSelectTab={(tab) => activateCurrentTab(tab)}
               />
             }
           >
@@ -392,7 +405,7 @@ export const App: Component<AppProps> = (props) => {
             )}
           </Show>
 
-          <StatusBar profile={config().keyboardProfile} />
+          <StatusBar profile={config().keyboardProfile} itemCount={store.totalItemCount()} />
         </div>
       </div>
     </Show>

@@ -10,11 +10,18 @@ interface TabRowProps {
   onClick: () => void;
   rowRef?: (el: HTMLDivElement) => void;
   activeTabId?: number;
+  focusedWindowId?: number;
+  isMultiWindow?: boolean;
 }
 
 export const TabRow: Component<TabRowProps> = (props) => {
   const titleParts = () => highlightText(props.tab.title, props.query);
   const domainParts = () => highlightText(props.tab.domain, props.query);
+
+  const showOtherWindow = () =>
+    Boolean(
+      props.isMultiWindow && props.focusedWindowId && props.tab.windowId !== props.focusedWindowId,
+    );
 
   return (
     <div
@@ -71,13 +78,15 @@ export const TabRow: Component<TabRowProps> = (props) => {
               {(part) => <span class={part.highlight ? "at-highlight" : ""}>{part.text}</span>}
             </For>
           </span>
-          <span class="at-row-meta">Win {props.tab.windowId}</span>
+          <Show when={showOtherWindow()}>
+            <span class="at-row-meta">Other Window</span>
+          </Show>
         </div>
       </div>
 
       <div class="at-row-badges">
         <Show when={props.tab.id === props.activeTabId}>
-          <span class="at-badge">Active</span>
+          <span class="at-badge at-badge-active">Active</span>
         </Show>
         <Show when={props.tab.pinned}>
           <span class="at-badge at-badge-pinned">Pinned</span>

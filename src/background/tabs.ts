@@ -5,14 +5,20 @@ import { extractDomain } from "../utils/domain";
 import { sortTabsByDomain, sortTabsByMRU, sortTabsByTitle } from "../utils/sorting";
 import { normalizeUrl } from "../utils/url";
 
-export async function activateTab(tabId: number, windowId: number): Promise<Result<void>> {
+export async function activateTab(tabId: number, windowId?: number): Promise<Result<void>> {
   try {
     if (typeof chrome === "undefined" || !chrome.tabs) {
       return err("CHROME_API_UNAVAILABLE", "Chrome tabs API is unavailable");
     }
-    await chrome.windows.update(windowId, { focused: true });
     await chrome.tabs.update(tabId, { active: true });
-    tabStore.setActiveTab(tabId, windowId);
+    if (windowId && typeof chrome.windows !== "undefined" && chrome.windows.update) {
+      try {
+        await chrome.windows.update(windowId, { focused: true });
+      } catch {
+        // Window focus best effort
+      }
+    }
+    tabStore.setActiveTab(tabId, windowId ?? -1);
     return ok(undefined);
   } catch (e) {
     return err("ACTIVATE_FAILED", e instanceof Error ? e.message : "Failed to activate tab");

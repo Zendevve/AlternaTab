@@ -3,6 +3,7 @@ import type { KeyboardProfile } from "../../types/models";
 
 interface StatusBarProps {
   profile: KeyboardProfile;
+  itemCount?: number;
 }
 
 export const StatusBar: Component<StatusBarProps> = (props) => {
@@ -11,8 +12,8 @@ export const StatusBar: Component<StatusBarProps> = (props) => {
       case "vim":
         return [
           { key: "j/k", label: "navigate" },
-          { key: "Enter/o", label: "open" },
-          { key: "d/x", label: "close" },
+          { key: "↵", label: "open" },
+          { key: "d", label: "close" },
           { key: "p", label: "pin" },
           { key: "m", label: "mute" },
           { key: "Esc", label: "exit" },
@@ -20,16 +21,16 @@ export const StatusBar: Component<StatusBarProps> = (props) => {
       case "emacs":
         return [
           { key: "C-n/p", label: "navigate" },
-          { key: "Enter", label: "open" },
+          { key: "↵", label: "open" },
           { key: "C-w", label: "close" },
           { key: "C-g", label: "exit" },
         ];
       default:
         return [
           { key: "↑↓", label: "navigate" },
-          { key: "Enter", label: "open" },
+          { key: "↵", label: "open" },
           { key: "Tab", label: "scope" },
-          { key: "Ctrl+Enter", label: "new window" },
+          { key: "Ctrl+↵", label: "window" },
           { key: "Esc", label: "close" },
         ];
     }
@@ -49,7 +50,14 @@ export const StatusBar: Component<StatusBarProps> = (props) => {
       </div>
       <div>
         <Show when={props.profile !== "standard"}>
-          <span class="at-badge">Mode: {props.profile.toUpperCase()}</span>
+          <span class="at-badge" style={{ "margin-right": "8px" }}>
+            {props.profile.toUpperCase()}
+          </span>
+        </Show>
+        <Show when={props.itemCount !== undefined && props.itemCount > 0}>
+          <span>
+            {props.itemCount} {props.itemCount === 1 ? "tab" : "tabs"}
+          </span>
         </Show>
       </div>
     </div>

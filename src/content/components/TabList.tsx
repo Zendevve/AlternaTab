@@ -9,6 +9,7 @@ interface TabListProps {
   query: string;
   domainColors: Record<string, string>;
   activeTabId?: number;
+  focusedWindowId?: number;
   onSelectTab: (tab: TabItem) => void;
   maxRenderedItems: number;
 }
@@ -17,6 +18,13 @@ export const TabList: Component<TabListProps> = (props) => {
   const rowElements: Map<number, HTMLDivElement> = new Map();
 
   const displayedTabs = () => props.tabs.slice(0, props.maxRenderedItems);
+
+  const isMultiWindow = () => {
+    const list = props.tabs;
+    if (list.length <= 1) return false;
+    const firstWin = list[0]?.windowId;
+    return list.some((t) => t.windowId !== firstWin);
+  };
 
   createEffect(() => {
     const idx = props.selectedIndex;
@@ -49,6 +57,8 @@ export const TabList: Component<TabListProps> = (props) => {
                 query={props.query}
                 domainColor={domainColor()}
                 activeTabId={props.activeTabId}
+                focusedWindowId={props.focusedWindowId}
+                isMultiWindow={isMultiWindow()}
                 rowRef={(el) => {
                   if (el) rowElements.set(idx(), el);
                   else rowElements.delete(idx());
