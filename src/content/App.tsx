@@ -303,10 +303,15 @@ export const App: Component<AppProps> = (props) => {
     clearQuery: () => store.setQuery(""),
   });
 
-  // Global listeners while overlay is visible — block wheel/scroll bleed-through
-  // and ensure handled keydown events reach the page as fully consumed.
+  // Global listeners while overlay is visible — block wheel/scroll/touch
+  // bleed-through to the host page while keeping the results list scrollable.
   createEffect(() => {
     if (!visible()) return;
+    const isInsideScrollableList = (target: EventTarget | null): boolean => {
+      if (!(target instanceof Node)) return false;
+      const el = target as Element | null;
+      return !!el?.closest(".at-results-list");
+    };
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       const handled = keyboardHandler(e);
       if (handled) {
@@ -314,15 +319,37 @@ export const App: Component<AppProps> = (props) => {
         e.stopPropagation();
       }
     };
-    const handleGlobalWheel = (e: WheelEvent) => {
+    const handleScrollBleed = (e: WheelEvent | TouchEvent) => {
+      if (isInsideScrollableList(e.target)) {
+        // Inside the list: let the list scroll normally, but at scroll edges
+        // block propagation so the page underneath never receives a chained
+        // scroll / overscroll-bounce gesture.
+        const scrollEl = (e.target as Element).closest(".at-results-list") as HTMLElement | null;
+        if (scrollEl) {
+          const atTop = scrollEl.scrollTop <= 0;
+          const atBottom = scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - 1;
+          const goingDown = "deltaY" in e ? e.deltaY > 0 : false;
+          const goingUp = "deltaY" in e ? e.deltaY < 0 : false;
+          if ((atTop && goingUp) || (atBottom && goingDown)) {
+            e.preventDefault();
+          }
+        }
+        e.stopPropagation();
+        return;
+      }
+      // Outside the list: full block.
       e.preventDefault();
       e.stopPropagation();
     };
     window.addEventListener("keydown", handleGlobalKeyDown, { capture: true });
-    window.addEventListener("wheel", handleGlobalWheel, { capture: true, passive: false });
+    window.addEventListener("wheel", handleScrollBleed, { capture: true, passive: false });
+    window.addEventListener("touchmove", handleScrollBleed, { capture: true, passive: false });
     onCleanup(() => {
       window.removeEventListener("keydown", handleGlobalKeyDown, { capture: true });
-      window.removeEventListener("wheel", handleGlobalWheel, {
+      window.removeEventListener("wheel", handleScrollBleed, {
+        capture: true,
+      } as EventListenerOptions);
+      window.removeEventListener("touchmove", handleScrollBleed, {
         capture: true,
       } as EventListenerOptions);
     });

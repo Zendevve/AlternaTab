@@ -39,13 +39,21 @@ export function mountOverlay(): { host: HTMLDivElement; shadow: ShadowRoot } {
     shadow as unknown as Document,
   );
 
+  let savedBodyOverflow = "";
   const setHostVisible = (isVisible: boolean) => {
     if (isVisible) {
       host.style.display = "block";
       host.style.pointerEvents = "auto";
+      if (document.body) {
+        savedBodyOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+      }
     } else {
       host.style.display = "none";
       host.style.pointerEvents = "none";
+      if (document.body) {
+        document.body.style.overflow = savedBodyOverflow;
+      }
     }
   };
 
