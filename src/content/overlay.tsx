@@ -1,9 +1,25 @@
 import { delegateEvents, render } from "solid-js/web";
+import interVariableUrl from "../assets/fonts/InterVariable.woff2?url";
 import overlayCss from "../assets/styles/overlay.css?raw";
 import { App } from "./App";
 
 let overlayHost: HTMLDivElement | null = null;
 let disposeApp: (() => void) | null = null;
+
+// Self-host Inter Variable so the HUD renders with a consistent typeface
+// regardless of the user's installed system fonts. The woff2 is OFL-licensed
+// (https://github.com/rsms/inter). injected via @font-face into the shadow
+// stylesheet so it is fully scoped to the HUD and never leaks to the host page.
+const fontFaceCss = `
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("${interVariableUrl}") format("woff2-variations"),
+       url("${interVariableUrl}") format("woff2");
+}
+`;
 
 export function mountOverlay(): { host: HTMLDivElement; shadow: ShadowRoot } {
   if (overlayHost) {
@@ -26,11 +42,11 @@ export function mountOverlay(): { host: HTMLDivElement; shadow: ShadowRoot } {
 
   try {
     const sheet = new CSSStyleSheet();
-    sheet.replaceSync(overlayCss);
+    sheet.replaceSync(fontFaceCss + overlayCss);
     shadow.adoptedStyleSheets = [sheet];
   } catch {
     const styleEl = document.createElement("style");
-    styleEl.textContent = overlayCss;
+    styleEl.textContent = fontFaceCss + overlayCss;
     shadow.appendChild(styleEl);
   }
 
