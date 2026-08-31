@@ -11,6 +11,7 @@ interface TabListProps {
   activeTabId?: number;
   focusedWindowId?: number;
   onSelectTab: (tab: TabItem) => void;
+  onHoverTab?: (index: number) => void;
   maxRenderedItems: number;
 }
 
@@ -64,6 +65,7 @@ export const TabList: Component<TabListProps> = (props) => {
                   else rowElements.delete(idx());
                 }}
                 onClick={() => props.onSelectTab(tab)}
+                onMouseEnter={() => props.onHoverTab?.(idx())}
               />
             );
           }}

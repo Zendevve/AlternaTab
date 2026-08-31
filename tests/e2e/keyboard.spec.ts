@@ -29,6 +29,36 @@ test.describe("AlternaTab NextGen Keyboard & Navigation", () => {
     }
   });
 
+  test("closes HUD when clicking outside the window on backdrop", async () => {
+    const { context } = await createExtensionContext();
+
+    try {
+      const page = await context.newPage();
+      await page.goto("https://example.com");
+
+      // Open HUD
+      await page.evaluate(() => {
+        window.postMessage({ type: "TOGGLE_ALTERNATAB_OVERLAY" }, "*");
+      });
+
+      // Click outside HUD on backdrop
+      await page.evaluate(() => {
+        const h = document.getElementById("alternatab-host");
+        const backdrop = h?.shadowRoot?.querySelector(".at-backdrop") as HTMLElement;
+        backdrop?.click();
+      });
+
+      // Verify closed
+      const isClosed = await page.evaluate(() => {
+        const h = document.getElementById("alternatab-host");
+        return h?.style.display === "none";
+      });
+      expect(isClosed).toBe(true);
+    } finally {
+      await context.close();
+    }
+  });
+
   test("configures keyboard profiles in options", async () => {
     const { context, extensionId } = await createExtensionContext();
 

@@ -8,6 +8,7 @@ interface TabRowProps {
   query: string;
   domainColor?: string;
   onClick: () => void;
+  onMouseEnter?: () => void;
   rowRef?: (el: HTMLDivElement) => void;
   activeTabId?: number;
   focusedWindowId?: number;
@@ -32,6 +33,7 @@ export const TabRow: Component<TabRowProps> = (props) => {
         e.stopPropagation();
         props.onClick();
       }}
+      onMouseEnter={props.onMouseEnter}
       role="option"
       aria-selected={props.selected}
       tabIndex={props.selected ? 0 : -1}

@@ -343,13 +343,16 @@ export const App: Component<AppProps> = (props) => {
         style={{
           "--at-blur-px": `${config().blurRadiusPx}px`,
         }}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            closeOverlay();
+          }
+        }}
       >
         <div
           class="at-backdrop"
           onClick={() => {
-            if (config().closeOnBlur) {
-              closeOverlay();
-            }
+            closeOverlay();
           }}
         />
 
@@ -358,6 +361,9 @@ export const App: Component<AppProps> = (props) => {
           role="dialog"
           aria-modal="true"
           aria-label="AlternaTab Command HUD"
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
         >
           <SearchBar
             query={store.query()}
@@ -388,6 +394,7 @@ export const App: Component<AppProps> = (props) => {
                 focusedWindowId={store.focusedWindowId()}
                 maxRenderedItems={config().maxRenderedItems}
                 onSelectTab={(tab) => activateCurrentTab(tab)}
+                onHoverTab={(idx) => store.setSelectedIndex(idx)}
               />
             }
           >
@@ -396,6 +403,7 @@ export const App: Component<AppProps> = (props) => {
               selectedIndex={store.selectedIndex()}
               query={store.parsed().query}
               onSelect={executeCurrentCommand}
+              onHoverCommand={(idx) => store.setSelectedIndex(idx)}
             />
           </Show>
 
@@ -405,6 +413,7 @@ export const App: Component<AppProps> = (props) => {
                 tab={tab()}
                 selectedIndex={contextActionIndex()}
                 onExecute={handleContextAction}
+                onHover={(idx) => setContextActionIndex(idx)}
               />
             )}
           </Show>

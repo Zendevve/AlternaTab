@@ -8,6 +8,7 @@ interface CommandPaletteProps {
   selectedIndex: number;
   query: string;
   onSelect: (cmd: CommandItem) => void;
+  onHoverCommand?: (index: number) => void;
   rowRef?: (index: number, el: HTMLDivElement) => void;
 }
 
@@ -29,7 +30,12 @@ export const CommandPalette: Component<CommandPaletteProps> = (props) => {
               <div
                 ref={(el) => props.rowRef?.(idx(), el)}
                 class={`at-row ${isSelected() ? "at-selected" : ""}`}
-                onClick={() => props.onSelect(cmd)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  props.onSelect(cmd);
+                }}
+                onMouseEnter={() => props.onHoverCommand?.(idx())}
                 role="option"
                 aria-selected={isSelected()}
                 tabIndex={isSelected() ? 0 : -1}

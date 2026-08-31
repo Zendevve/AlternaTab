@@ -13,6 +13,7 @@ interface ContextActionsProps {
   tab: TabItem;
   selectedIndex: number;
   onExecute: (action: ContextActionType) => void;
+  onHover?: (index: number) => void;
 }
 
 export const ContextActions: Component<ContextActionsProps> = (props) => {
@@ -58,7 +59,12 @@ export const ContextActions: Component<ContextActionsProps> = (props) => {
           return (
             <div
               class={`at-action-item ${isSelected() ? "at-selected" : ""}`}
-              onClick={() => props.onExecute(act.type)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                props.onExecute(act.type);
+              }}
+              onMouseEnter={() => props.onHover?.(idx())}
               role="menuitem"
               tabIndex={isSelected() ? 0 : -1}
             >
