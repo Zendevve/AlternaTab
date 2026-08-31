@@ -28,6 +28,11 @@ export const TabRow: Component<TabRowProps> = (props) => {
     <div
       ref={props.rowRef}
       class={`at-row ${props.selected ? "at-selected" : ""}`}
+      onMouseDown={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        props.onClick();
+      }}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();

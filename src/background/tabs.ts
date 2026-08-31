@@ -10,15 +10,17 @@ export async function activateTab(tabId: number, windowId?: number): Promise<Res
     if (typeof chrome === "undefined" || !chrome.tabs) {
       return err("CHROME_API_UNAVAILABLE", "Chrome tabs API is unavailable");
     }
+    const tab = await chrome.tabs.get(tabId);
     await chrome.tabs.update(tabId, { active: true });
-    if (windowId && typeof chrome.windows !== "undefined" && chrome.windows.update) {
+    const targetWinId = tab?.windowId || windowId;
+    if (targetWinId && typeof chrome.windows !== "undefined" && chrome.windows.update) {
       try {
-        await chrome.windows.update(windowId, { focused: true });
+        await chrome.windows.update(targetWinId, { focused: true });
       } catch {
         // Window focus best effort
       }
     }
-    tabStore.setActiveTab(tabId, windowId ?? -1);
+    tabStore.setActiveTab(tabId, targetWinId ?? -1);
     return ok(undefined);
   } catch (e) {
     return err("ACTIVATE_FAILED", e instanceof Error ? e.message : "Failed to activate tab");

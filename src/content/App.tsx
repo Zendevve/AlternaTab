@@ -103,8 +103,19 @@ export const App: Component<AppProps> = (props) => {
   const activateCurrentTab = async (targetTab?: TabItem) => {
     const tab = targetTab ?? getSelectedTab();
     if (!tab) return;
+    const tabId = tab.id;
+    const windowId = tab.windowId;
     closeOverlay();
-    await sendMessage("activateTab", { tabId: tab.id, windowId: tab.windowId });
+    try {
+      await sendMessage("activateTab", { tabId, windowId });
+    } catch {
+      if (typeof chrome !== "undefined" && chrome.runtime?.sendMessage) {
+        chrome.runtime.sendMessage({
+          type: "activateTab",
+          data: { tabId, windowId },
+        });
+      }
+    }
   };
 
   const executeCurrentCommand = async (cmdToRun?: CommandItem) => {
@@ -343,6 +354,11 @@ export const App: Component<AppProps> = (props) => {
         style={{
           "--at-blur-px": `${config().blurRadiusPx}px`,
         }}
+        onMouseDown={(e) => {
+          if (e.target === e.currentTarget) {
+            closeOverlay();
+          }
+        }}
         onClick={(e) => {
           if (e.target === e.currentTarget) {
             closeOverlay();
@@ -351,7 +367,12 @@ export const App: Component<AppProps> = (props) => {
       >
         <div
           class="at-backdrop"
-          onClick={() => {
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            closeOverlay();
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
             closeOverlay();
           }}
         />
@@ -361,6 +382,9 @@ export const App: Component<AppProps> = (props) => {
           role="dialog"
           aria-modal="true"
           aria-label="AlternaTab Command HUD"
+          onMouseDown={(e) => {
+            e.stopPropagation();
+          }}
           onClick={(e) => {
             e.stopPropagation();
           }}
