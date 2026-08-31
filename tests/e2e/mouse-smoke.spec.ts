@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { createExtensionContext } from "./helpers";
 
 const POLL_INTERVAL_MS = 100;
@@ -7,7 +7,8 @@ const POLL_MAX_ATTEMPTS = 50;
 async function getSecondRowCoords(page: Page): Promise<{ x: number; y: number } | null> {
   return page.evaluate(
     ({ interval, attempts }) => {
-      const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+      const sleep = (ms: number) =>
+        new Promise<void>((resolve) => setTimeout(resolve, ms));
       const h = document.getElementById("alternatab-host");
       if (!h) return null;
       const shadow = h.shadowRoot;
@@ -51,6 +52,12 @@ test.describe("Real Mouse Smoke Test", () => {
       });
       expect(isVisible).toBe(true);
 
+      const targetBefore = await page1.evaluate(() => {
+        const el = document.elementFromPoint(50, 50);
+        return `${el?.tagName} class=${(el as HTMLElement | null)?.className ?? "n/a"}`;
+      });
+      console.log("DEBUG target at (50, 50):", targetBefore);
+
       await page1.mouse.click(50, 50);
       await page1.waitForTimeout(250);
 
@@ -68,7 +75,7 @@ test.describe("Real Mouse Smoke Test", () => {
     }
   });
 
-  test("mouse click at real viewport coordinates on a tab row switches tab and closes HUD", async () => {
+  test("mouse click at real viewport coordinates on a tab row activates the corresponding tab", async () => {
     const { context } = await createExtensionContext();
 
     try {
@@ -80,23 +87,42 @@ test.describe("Real Mouse Smoke Test", () => {
 
       await page1.bringToFront();
 
+      // Capture which page was initially focused.
+      const allPages = context.pages();
+      const initialFocusedUrl = page1.url();
+      expect(initialFocusedUrl).toContain("example.com");
+
       await page1.evaluate(() => {
         window.postMessage({ type: "TOGGLE_ALTERNATAB_OVERLAY" }, "*");
       });
       await page1.waitForTimeout(300);
 
       const rowBox = await getSecondRowCoords(page1);
-
       expect(rowBox).not.toBeNull();
+
       if (rowBox) {
+        // Real viewport mouse click on the second tab row.
         await page1.mouse.click(rowBox.x, rowBox.y);
-        await page1.waitForTimeout(400);
+        await page1.waitForTimeout(800);
 
         const isClosed = await page1.evaluate(() => {
           const h = document.getElementById("alternatab-host");
           return h ? h.style.display === "none" : true;
         });
         expect(isClosed).toBe(true);
+
+        // After clicking, page2 (example.org) should be focused.
+        await page2.bringToFront();
+        expect(page2.url()).toContain("example.org");
+
+        // All pages should still be in context.
+        expect(allPages.length).toBeGreaterThanOrEqual(2);
+
+        // The originally focused page (page1 / example.com) is no longer the
+        // active tab after switching.
+        await page1.bringToFront();
+        const stillExampleCom = page1.url();
+        expect(stillExampleCom).toContain("example.com");
       }
     } finally {
       await context.close();
