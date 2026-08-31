@@ -1,28 +1,17 @@
-import { defineConfig } from "vite";
-import webExtension, { readJsonFile } from "vite-plugin-web-extension";
-
-function getManifest() {
-  const manifest = readJsonFile("src/manifest.json");
-  return manifest;
-}
+import path from "node:path";
+import solid from "vite-plugin-solid";
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-  plugins: [
-    webExtension({
-      manifest: getManifest,
-      additionalInputs: ["src/onboarding/index.html"],
-    }),
-  ],
+  plugins: [solid()],
   resolve: {
     alias: {
-      "@": "/src",
+      "@": path.resolve(__dirname, "./src"),
     },
   },
-  build: {
-    sourcemap: false,
-  },
-  esbuild: {
-    drop: ["console", "debugger"],
+  test: {
+    globals: true,
+    environment: "node",
+    include: ["tests/unit/**/*.test.ts"],
   },
 });
-

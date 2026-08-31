@@ -1,14 +1,17 @@
 {
+  "extends": "./.wxt/tsconfig.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "jsx": "preserve"
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js",
+    "types": ["chrome", "vitest/globals", "node"]
   },
-  "include": ["src/**/*"]
+  "include": [
+    "src/**/*",
+    "entrypoints/**/*",
+    "tests/**/*",
+    "wxt.config.ts",
+    "vite.config.ts",
+    "playwright.config.ts",
+    ".wxt/wxt.d.ts"
+  ]
 }

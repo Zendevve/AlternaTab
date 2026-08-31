@@ -1,3 +1,8 @@
 node_modules
+.output
+.wxt
 dist
-.planning/STATE-local.md
+test-results
+playwright-report
+*.log
+*.zip
