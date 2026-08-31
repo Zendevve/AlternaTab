@@ -303,15 +303,28 @@ export const App: Component<AppProps> = (props) => {
     clearQuery: () => store.setQuery(""),
   });
 
-  // Global window keydown listener while overlay is visible
+  // Global listeners while overlay is visible — block wheel/scroll bleed-through
+  // and ensure handled keydown events reach the page as fully consumed.
   createEffect(() => {
     if (!visible()) return;
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      keyboardHandler(e);
+      const handled = keyboardHandler(e);
+      if (handled) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    const handleGlobalWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
     };
     window.addEventListener("keydown", handleGlobalKeyDown, { capture: true });
+    window.addEventListener("wheel", handleGlobalWheel, { capture: true, passive: false });
     onCleanup(() => {
       window.removeEventListener("keydown", handleGlobalKeyDown, { capture: true });
+      window.removeEventListener("wheel", handleGlobalWheel, {
+        capture: true,
+      } as EventListenerOptions);
     });
   });
 
@@ -371,37 +384,10 @@ export const App: Component<AppProps> = (props) => {
             closeOverlay();
           }
         }}
-        on:click={(e: MouseEvent) => {
-          if (e.target === e.currentTarget) {
-            closeOverlay();
-          }
-        }}
-        onMouseDown={(e) => {
-          if (e.target === e.currentTarget) {
-            closeOverlay();
-          }
-        }}
-        onClick={(e) => {
-          if (e.target === e.currentTarget) {
-            closeOverlay();
-          }
-        }}
       >
         <div
           class="at-backdrop"
           on:mousedown={(e: MouseEvent) => {
-            e.stopPropagation();
-            closeOverlay();
-          }}
-          on:click={(e: MouseEvent) => {
-            e.stopPropagation();
-            closeOverlay();
-          }}
-          onMouseDown={(e) => {
-            e.stopPropagation();
-            closeOverlay();
-          }}
-          onClick={(e) => {
             e.stopPropagation();
             closeOverlay();
           }}
@@ -413,15 +399,6 @@ export const App: Component<AppProps> = (props) => {
           aria-modal="true"
           aria-label="AlternaTab Command HUD"
           on:mousedown={(e: MouseEvent) => {
-            e.stopPropagation();
-          }}
-          on:click={(e: MouseEvent) => {
-            e.stopPropagation();
-          }}
-          onMouseDown={(e) => {
-            e.stopPropagation();
-          }}
-          onClick={(e) => {
             e.stopPropagation();
           }}
         >
@@ -436,9 +413,6 @@ export const App: Component<AppProps> = (props) => {
             itemCount={store.totalItemCount()}
             inputRef={(el) => {
               searchInputRef = el;
-            }}
-            onKeyDown={(e) => {
-              keyboardHandler(e);
             }}
           />
 

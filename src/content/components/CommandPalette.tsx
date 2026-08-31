@@ -35,13 +35,7 @@ export const CommandPalette: Component<CommandPaletteProps> = (props) => {
                   e.stopPropagation();
                   props.onSelect(cmd);
                 }}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  props.onSelect(cmd);
-                }}
                 on:mouseenter={() => props.onHoverCommand?.(idx())}
-                onMouseEnter={() => props.onHoverCommand?.(idx())}
                 role="option"
                 aria-selected={isSelected()}
                 tabIndex={isSelected() ? 0 : -1}

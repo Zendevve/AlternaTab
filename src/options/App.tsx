@@ -202,16 +202,11 @@ export const App: Component = () => {
         </div>
       </div>
 
-      <div style={{ display: "flex", "align-items": "center", "margin-top": "24px" }}>
+      <div class="actions-row">
         <button type="button" class="btn btn-primary" onClick={save}>
           Save Settings
         </button>
-        <button
-          type="button"
-          class="btn btn-secondary"
-          style={{ "margin-left": "12px" }}
-          onClick={reset}
-        >
+        <button type="button" class="btn btn-secondary" onClick={reset}>
           Reset to Defaults
         </button>
         <Show when={status().length > 0}>

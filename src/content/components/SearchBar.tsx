@@ -8,7 +8,6 @@ interface SearchBarProps {
   onCycleScope: () => void;
   itemCount: number;
   inputRef?: (el: HTMLInputElement) => void;
-  onKeyDown?: (e: KeyboardEvent) => void;
 }
 
 export const SearchBar: Component<SearchBarProps> = (props) => {
@@ -35,7 +34,6 @@ export const SearchBar: Component<SearchBarProps> = (props) => {
         placeholder="Search tabs, URLs, domains... (@ tabs, # groups, * bookmarks, > commands)"
         value={props.query}
         onInput={(e) => props.onQueryChange(e.currentTarget.value)}
-        onKeyDown={props.onKeyDown}
         aria-label="Search tabs and commands"
         autocomplete="off"
         spellcheck={false}
@@ -45,10 +43,6 @@ export const SearchBar: Component<SearchBarProps> = (props) => {
         type="button"
         class="at-scope-pill"
         on:click={(e: MouseEvent) => {
-          e.stopPropagation();
-          props.onCycleScope();
-        }}
-        onClick={(e) => {
           e.stopPropagation();
           props.onCycleScope();
         }}

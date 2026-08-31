@@ -34,12 +34,7 @@ export const TabRow: Component<TabRowProps> = (props) => {
         e.stopPropagation();
         props.onClick();
       }}
-      onClick={(e) => {
-        e.stopPropagation();
-        props.onClick();
-      }}
       on:mouseenter={props.onMouseEnter}
-      onMouseEnter={props.onMouseEnter}
       aria-selected={props.selected ? "true" : "false"}
       tabIndex={props.selected ? 0 : -1}
     >

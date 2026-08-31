@@ -64,13 +64,7 @@ export const ContextActions: Component<ContextActionsProps> = (props) => {
                 e.stopPropagation();
                 props.onExecute(act.type);
               }}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                props.onExecute(act.type);
-              }}
               on:mouseenter={() => props.onHover?.(idx())}
-              onMouseEnter={() => props.onHover?.(idx())}
               role="menuitem"
               tabIndex={isSelected() ? 0 : -1}
             >
