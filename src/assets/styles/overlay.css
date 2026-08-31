@@ -23,9 +23,9 @@
   inset: 0;
   z-index: 2147483647;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  padding-top: 12vh;
+  padding: 24px;
   pointer-events: auto;
 }
 
@@ -157,6 +157,7 @@
   width: 660px;
   max-width: 92vw;
   max-height: 78vh;
+  margin: auto;
   display: flex;
   flex-direction: column;
   background-color: var(--at-hud-bg);
