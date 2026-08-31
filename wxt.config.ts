@@ -10,6 +10,9 @@ export default defineConfig({
         "@": path.resolve(__dirname, "./src"),
       },
     },
+    build: {
+      assetsInlineLimit: 0,
+    },
   }),
   manifest: {
     name: "AlternaTab NextGen",
@@ -17,6 +20,12 @@ export default defineConfig({
       "Ultra-fast, keyboard-first tab switching, search, organization, and tab lifecycle management",
     version: "1.0.0",
     permissions: ["tabs", "storage", "sessions", "tabGroups", "commands"],
+    web_accessible_resources: [
+      {
+        resources: ["assets/*"],
+        matches: ["<all_urls>"],
+      },
+    ],
     icons: {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",

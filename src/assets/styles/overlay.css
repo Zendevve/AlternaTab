@@ -37,6 +37,18 @@
   padding: 0;
 }
 
+.at-hud-container,
+.at-hud-container *,
+.at-search-input,
+.at-row,
+.at-row-title,
+.at-row-sub,
+.at-badge,
+.at-kbd {
+  font-family:
+    "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+  font-synthesis: none;
+}
 /* ------------------------------------------------------------
    Tokens — default = dark (matches Framer's "brand IS dark" rule)
    ------------------------------------------------------------ */
