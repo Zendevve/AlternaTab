@@ -125,4 +125,55 @@ export function registerBackgroundMessaging(): void {
     }
     return list;
   });
+
+  onMessage("fetchFavicon", async (message) => {
+    const raw = message.data?.url;
+    if (typeof raw !== "string") return { dataUrl: null };
+    const url = raw.trim();
+    if (!url) return { dataUrl: null };
+    if (!/^https?:\/\//i.test(url)) return { dataUrl: null };
+    if (/^(chrome|chrome-extension|moz-extension|about|data|file|filesystem|javascript|blob|view-source):/i.test(url)) {
+      return { dataUrl: null };
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    try {
+      const res = await fetch(url, {
+        mode: "cors",
+        credentials: "omit",
+        signal: controller.signal,
+      });
+      if (!res.ok) return { dataUrl: null };
+      const ct = (res.headers.get("content-type") || "").toLowerCase();
+      const isImage =
+        ct.startsWith("image/") || ct === "application/octet-stream";
+      if (!isImage) return { dataUrl: null };
+
+      const blob = await res.blob();
+      let dataUrl: string;
+      if (typeof FileReader !== "undefined") {
+        dataUrl = await new Promise<string>((resolve, reject) => {
+          const fr = new FileReader();
+          fr.onload = () => resolve(fr.result as string);
+          fr.onerror = () => reject(fr.error ?? new Error("FileReader failed"));
+          fr.readAsDataURL(blob);
+        });
+      } else {
+        const buffer = await blob.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) {
+          binary += String.fromCharCode(bytes[i] ?? 0);
+        }
+        const base64 = btoa(binary);
+        dataUrl = `data:${ct || "application/octet-stream"};base64,${base64}`;
+      }
+      return { dataUrl };
+    } catch {
+      return { dataUrl: null };
+    } finally {
+      clearTimeout(timeout);
+    }
+  });
 }

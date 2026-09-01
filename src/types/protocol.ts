@@ -34,6 +34,7 @@ export interface ProtocolMap {
   exportSession(): Result<{ json: string }>;
   reloadAllTabs(data?: { windowId?: number }): Result<{ reloadedCount: number }>;
   getBookmarks(): BookmarkItem[];
+  fetchFavicon(data: { url: string }): { dataUrl: string | null };
 }
 
 export const { sendMessage, onMessage } = defineExtensionMessaging<ProtocolMap>();

@@ -5,6 +5,16 @@ import { sortTabsByFrecency } from "../utils/sorting";
 import { configStore } from "./configStore";
 import { sessionStore } from "./sessionStore";
 
+const FAVICON_DISABLED_SCHEMES = /^(chrome|chrome-extension|edge|about|devtools|view-source|moz-extension|file|blob|filesystem):/i;
+
+function sanitizeFavIconUrl(raw: string | undefined): string | undefined {
+  if (typeof raw !== "string") return undefined;
+  const url = raw.trim();
+  if (!url) return undefined;
+  if (FAVICON_DISABLED_SCHEMES.test(url)) return undefined;
+  return url;
+}
+
 class TabStore {
   private tabs: Map<number, TabItem> = new Map();
   private groups: Map<number, TabGroupItem> = new Map();
@@ -81,7 +91,7 @@ class TabStore {
           title: t.title || domain || "New Tab",
           url,
           domain,
-          favIconUrl: t.favIconUrl,
+          favIconUrl: sanitizeFavIconUrl(t.favIconUrl),
           pinned: !!t.pinned,
           audible: !!t.audible,
           muted: !!t.mutedInfo?.muted,

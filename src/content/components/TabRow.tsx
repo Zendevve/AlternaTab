@@ -1,6 +1,7 @@
-import { type Component, createEffect, createSignal, For, Show } from "solid-js";
+import { type Component, createEffect, createSignal, For, onCleanup, Show } from "solid-js";
 import type { TabItem } from "../../types/models";
 import { highlightText } from "../../utils/search";
+import { sendMessage } from "../../types/protocol";
 
 interface TabRowProps {
   tab: TabItem;
@@ -18,12 +19,53 @@ interface TabRowProps {
 export const TabRow: Component<TabRowProps> = (props) => {
   const titleParts = () => highlightText(props.tab.title, props.query);
   const domainParts = () => highlightText(props.tab.domain, props.query);
+  const [iconSrc, setIconSrc] = createSignal<string | null>(props.tab.favIconUrl ?? null);
   const [iconFailed, setIconFailed] = createSignal(false);
+  const [retryCount, setRetryCount] = createSignal(0);
+  const [proxyUrl, setProxyUrl] = createSignal<string | null>(null);
+  let retryTimer: ReturnType<typeof setTimeout> | undefined;
+  let proxyAttempted = false;
+
+  const clearRetryTimer = () => {
+    if (retryTimer !== undefined) {
+      clearTimeout(retryTimer);
+      retryTimer = undefined;
+    }
+  };
+
+  onCleanup(clearRetryTimer);
 
   createEffect(() => {
+    props.tab.id;
     props.tab.favIconUrl;
+    clearRetryTimer();
+    setRetryCount(0);
     setIconFailed(false);
+    setProxyUrl(null);
+    proxyAttempted = false;
+    setIconSrc(props.tab.favIconUrl ?? null);
   });
+
+  const effectiveSrc = () => proxyUrl() ?? iconSrc();
+
+  const tryProxy = () => {
+    if (proxyAttempted) return;
+    const url = props.tab.favIconUrl;
+    if (!url) {
+      setIconFailed(true);
+      return;
+    }
+    proxyAttempted = true;
+    sendMessage("fetchFavicon", { url })
+      .then((res) => {
+        if (res?.dataUrl) {
+          setProxyUrl(res.dataUrl);
+        } else {
+          setIconFailed(true);
+        }
+      })
+      .catch(() => setIconFailed(true));
+  };
 
   const showOtherWindow = () =>
     Boolean(
@@ -46,7 +88,7 @@ export const TabRow: Component<TabRowProps> = (props) => {
     >
       <div class="at-row-icon">
         <Show
-          when={!!props.tab.favIconUrl && !iconFailed()}
+          when={effectiveSrc() && !iconFailed()}
           fallback={
             <svg
               width="16"
@@ -64,16 +106,52 @@ export const TabRow: Component<TabRowProps> = (props) => {
           }
         >
           <img
-            src={props.tab.favIconUrl}
+            src={effectiveSrc() ?? ""}
             alt=""
             class="at-favicon"
-            loading="lazy"
             referrerPolicy="no-referrer"
-            onError={() => setIconFailed(true)}
+            onError={() => {
+              const attempt = retryCount();
+              const url = props.tab.favIconUrl;
+              if (!url) {
+                setIconFailed(true);
+                return;
+              }
+              if (attempt < 3) {
+                const delay = 500 * 2 ** attempt;
+                clearRetryTimer();
+                retryTimer = setTimeout(() => {
+                  setRetryCount(attempt + 1);
+                  setIconSrc(`${url}${url.includes("?") ? "&" : "?"}r=${attempt + 1}`);
+                }, delay);
+                return;
+              }
+              tryProxy();
+            }}
+            onLoad={(e) => {
+              const img = e.currentTarget as HTMLImageElement;
+              if (img.naturalWidth === 0 || img.naturalHeight === 0) {
+                const attempt = retryCount();
+                const url = props.tab.favIconUrl;
+                if (!url) {
+                  setIconFailed(true);
+                  return;
+                }
+                if (attempt < 3) {
+                  const delay = 500 * 2 ** attempt;
+                  clearRetryTimer();
+                  retryTimer = setTimeout(() => {
+                    setRetryCount(attempt + 1);
+                    setIconSrc(`${url}${url.includes("?") ? "&" : "?"}r=${attempt + 1}`);
+                  }, delay);
+                  return;
+                }
+                tryProxy();
+              }
+            }}
           />
         </Show>
       </div>
-
       <div class="at-row-main">
         <div class="at-row-title">
           <For each={titleParts()}>

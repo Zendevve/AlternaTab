@@ -133,12 +133,23 @@ p.subtitle {
   letter-spacing: -0.005em;
 }
 
+/* Column stack by default: the 720px card is intentionally narrow, so labels
+   above controls stay readable at every viewport — including the 447px
+   screenshot width where a side-by-side row crushed. Checkbox rows keep the
+   label-left/toggle-right pattern via :has(). */
 .form-group {
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.form-group:has(input[type="checkbox"]) {
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 12px;
 }
 
 .form-group:last-child {
@@ -152,9 +163,15 @@ p.subtitle {
   letter-spacing: -0.005em;
 }
 
+.form-group:has(input[type="checkbox"]) .form-label {
+  cursor: pointer;
+ }
+
 select,
 input[type="text"],
 input[type="number"] {
+  width: 100%;
+  box-sizing: border-box;
   background-color: var(--bg-primary);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
