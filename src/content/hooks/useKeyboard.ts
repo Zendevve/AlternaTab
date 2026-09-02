@@ -17,19 +17,39 @@ export interface KeyboardHandlers {
   onMruNext?: () => boolean;
   isQueryEmpty: () => boolean;
   clearQuery: () => void;
+  isInputFocused?: () => boolean;
+  isContextActionsOpen?: () => boolean;
+  onCloseContextActions?: () => void;
+  onExecuteContextAction?: (
+    action: "pin" | "mute" | "duplicate" | "move" | "discard" | "close",
+  ) => void;
 }
+
 export function createKeyboardHandler(profile: () => KeyboardProfile, handlers: KeyboardHandlers) {
   let vimPendingG = false;
   let vimTimer: number | null = null;
 
   return function handleKeyDown(e: KeyboardEvent): boolean {
     const activeProfile = profile();
-    const isTargetInput = e.target instanceof HTMLInputElement;
+    const path = typeof e.composedPath === "function" ? (e.composedPath() as Element[]) : [];
+    const rawTarget = (path[0] ?? e.target) as HTMLElement | null;
+    const isTargetInput =
+      rawTarget instanceof HTMLInputElement ||
+      rawTarget instanceof HTMLTextAreaElement ||
+      rawTarget?.tagName === "INPUT" ||
+      rawTarget?.tagName === "TEXTAREA" ||
+      rawTarget?.classList?.contains("at-search-input") ||
+      handlers.isInputFocused?.() ||
+      false;
 
     // 1. Universal Escape
     if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
+      if (handlers.isContextActionsOpen?.()) {
+        handlers.onCloseContextActions?.();
+        return true;
+      }
       if (!handlers.isQueryEmpty()) {
         handlers.clearQuery();
       } else {
@@ -38,7 +58,75 @@ export function createKeyboardHandler(profile: () => KeyboardProfile, handlers: 
       return true;
     }
 
-    // 2. Ctrl+Enter / Cmd+Enter: split to new window
+    // 2. Context Actions Drawer open — action keys take priority over search typing
+    if (handlers.isContextActionsOpen?.()) {
+      const lower = e.key.toLowerCase();
+      if (lower === "p") {
+        e.preventDefault();
+        e.stopPropagation();
+        handlers.onExecuteContextAction?.("pin");
+        return true;
+      }
+      if (lower === "m") {
+        e.preventDefault();
+        e.stopPropagation();
+        handlers.onExecuteContextAction?.("mute");
+        return true;
+      }
+      if (lower === "d") {
+        e.preventDefault();
+        e.stopPropagation();
+        handlers.onExecuteContextAction?.("duplicate");
+        return true;
+      }
+      if (lower === "w") {
+        e.preventDefault();
+        e.stopPropagation();
+        handlers.onExecuteContextAction?.("move");
+        return true;
+      }
+      if (lower === "s") {
+        e.preventDefault();
+        e.stopPropagation();
+        handlers.onExecuteContextAction?.("discard");
+        return true;
+      }
+      if (lower === "x") {
+        e.preventDefault();
+        e.stopPropagation();
+        handlers.onExecuteContextAction?.("close");
+        return true;
+      }
+      if (e.key === "ArrowDown" || lower === "j") {
+        e.preventDefault();
+        e.stopPropagation();
+        handlers.onNext();
+        return true;
+      }
+      if (e.key === "ArrowUp" || lower === "k") {
+        e.preventDefault();
+        e.stopPropagation();
+        handlers.onPrev();
+        return true;
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        e.stopPropagation();
+        handlers.onSelect();
+        return true;
+      }
+      if (e.key === "Tab") {
+        e.preventDefault();
+        e.stopPropagation();
+        handlers.onToggleContextActions();
+        return true;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      return true;
+    }
+
+    // 3. Ctrl+Enter / Cmd+Enter: split to new window
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       e.stopPropagation();
@@ -46,8 +134,7 @@ export function createKeyboardHandler(profile: () => KeyboardProfile, handlers: 
       return true;
     }
 
-    // 3. Tab navigation: Tab to cycle scope, Shift+Tab for context actions
-    // 3. Tab navigation: Tab to cycle scope, Shift+Tab for context actions — MRU intercept first
+    // 4. Tab navigation: Tab to cycle scope, Shift+Tab for context actions
     if (e.key === "Tab") {
       if (!e.shiftKey && handlers.onMruNext) {
         const handled = handlers.onMruNext();
@@ -66,7 +153,77 @@ export function createKeyboardHandler(profile: () => KeyboardProfile, handlers: 
       }
       return true;
     }
-    // 4. When user is typing inside the search input:
+
+    // 5. Vim Profile: Normal Mode (when query is empty or focus is not in search input)
+    if (activeProfile === "vim" && (handlers.isQueryEmpty() || !isTargetInput)) {
+      if (e.key === "j" || e.key === "ArrowDown") {
+        e.preventDefault();
+        e.stopPropagation();
+        handlers.onNext();
+        return true;
+      }
+      if (e.key === "k" || e.key === "ArrowUp") {
+        e.preventDefault();
+        e.stopPropagation();
+        handlers.onPrev();
+        return true;
+      }
+      if (e.key === "d" || e.key === "x") {
+        e.preventDefault();
+        e.stopPropagation();
+        handlers.onCloseCurrent();
+        return true;
+      }
+      if (e.key === "m") {
+        e.preventDefault();
+        e.stopPropagation();
+        handlers.onToggleMute();
+        return true;
+      }
+      if (e.key === "p") {
+        e.preventDefault();
+        e.stopPropagation();
+        handlers.onTogglePin();
+        return true;
+      }
+      if (e.key === "o" || e.key === "Enter") {
+        e.preventDefault();
+        e.stopPropagation();
+        handlers.onSelect();
+        return true;
+      }
+      if (e.key === "G") {
+        e.preventDefault();
+        e.stopPropagation();
+        handlers.onLastItem();
+        return true;
+      }
+      if (e.key === "g") {
+        if (vimPendingG) {
+          if (vimTimer) window.clearTimeout(vimTimer);
+          vimPendingG = false;
+          e.preventDefault();
+          e.stopPropagation();
+          handlers.onFirstItem();
+          return true;
+        }
+        vimPendingG = true;
+        vimTimer = window.setTimeout(() => {
+          vimPendingG = false;
+        }, 500);
+        e.preventDefault();
+        e.stopPropagation();
+        return true;
+      }
+      if (e.key === "/") {
+        e.preventDefault();
+        e.stopPropagation();
+        handlers.onFocusSearch();
+        return true;
+      }
+    }
+
+    // 6. When user is typing inside the search input:
     if (isTargetInput) {
       // List navigation via arrows
       if (e.key === "ArrowDown") {
@@ -134,7 +291,7 @@ export function createKeyboardHandler(profile: () => KeyboardProfile, handlers: 
       return false;
     }
 
-    // 5. When focus is NOT in the search input:
+    // 7. When focus is NOT in the search input:
     if (activeProfile === "standard") {
       if (e.key === "ArrowDown") {
         e.preventDefault();
@@ -196,63 +353,6 @@ export function createKeyboardHandler(profile: () => KeyboardProfile, handlers: 
         return true;
       }
       return false;
-    }
-
-    if (activeProfile === "vim") {
-      if (e.key === "j" || e.key === "ArrowDown") {
-        e.preventDefault();
-        handlers.onNext();
-        return true;
-      }
-      if (e.key === "k" || e.key === "ArrowUp") {
-        e.preventDefault();
-        handlers.onPrev();
-        return true;
-      }
-      if (e.key === "d" || e.key === "x") {
-        e.preventDefault();
-        handlers.onCloseCurrent();
-        return true;
-      }
-      if (e.key === "m") {
-        e.preventDefault();
-        handlers.onToggleMute();
-        return true;
-      }
-      if (e.key === "p") {
-        e.preventDefault();
-        handlers.onTogglePin();
-        return true;
-      }
-      if (e.key === "o" || e.key === "Enter") {
-        e.preventDefault();
-        handlers.onSelect();
-        return true;
-      }
-      if (e.key === "/") {
-        e.preventDefault();
-        handlers.onFocusSearch();
-        return true;
-      }
-      if (e.key === "G") {
-        e.preventDefault();
-        handlers.onLastItem();
-        return true;
-      }
-      if (e.key === "g") {
-        if (vimPendingG) {
-          if (vimTimer) window.clearTimeout(vimTimer);
-          vimPendingG = false;
-          e.preventDefault();
-          handlers.onFirstItem();
-          return true;
-        }
-        vimPendingG = true;
-        vimTimer = window.setTimeout(() => {
-          vimPendingG = false;
-        }, 500);
-        return true;
-      }
     }
 
     return false;

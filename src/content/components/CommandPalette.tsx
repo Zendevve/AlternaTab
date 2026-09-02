@@ -47,7 +47,9 @@ export const CommandPalette: Component<CommandPaletteProps> = (props) => {
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    stroke-width="2"
+                    stroke-width="1.75"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
                     aria-hidden="true"
                   >
                     <title>Command icon</title>

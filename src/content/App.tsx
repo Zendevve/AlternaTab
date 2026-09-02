@@ -83,14 +83,22 @@ export const App: Component<AppProps> = (props) => {
     }
   };
 
+  const focusSearchInput = () => {
+    if (searchInputRef) {
+      searchInputRef.focus();
+      searchInputRef.select();
+    }
+  };
+
   const openOverlay = async () => {
     setVisible(true);
     setShowContextActions(false);
+    // Focus immediately so keystrokes (e.g. Backspace) land in AlternaTab without delay
+    focusSearchInput();
+    queueMicrotask(focusSearchInput);
+    requestAnimationFrame(focusSearchInput);
     await loadData();
-    setTimeout(() => {
-      searchInputRef?.focus();
-      searchInputRef?.select();
-    }, 16);
+    focusSearchInput();
   };
 
   const closeOverlay = () => {
@@ -524,12 +532,33 @@ export const App: Component<AppProps> = (props) => {
     },
     isQueryEmpty: () => store.query().trim().length === 0,
     clearQuery: () => store.setQuery(""),
+    isInputFocused: () => {
+      if (!searchInputRef) return false;
+      const root = searchInputRef.getRootNode() as ShadowRoot | Document | null;
+      return (
+        root?.activeElement === searchInputRef ||
+        document.activeElement === searchInputRef ||
+        searchInputRef.matches(":focus")
+      );
+    },
+    isContextActionsOpen: () => showContextActions(),
+    onCloseContextActions: () => setShowContextActions(false),
+    onExecuteContextAction: (action) => handleContextAction(action),
   });
   // Global listeners while overlay is visible — block wheel/scroll/touch
   // bleed-through to the host page while keeping the results list scrollable.
   createEffect(() => {
     if (!visible()) return;
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const path = typeof e.composedPath === "function" ? (e.composedPath() as Element[]) : [];
+      const isInsideHost = path.some(
+        (el) =>
+          el instanceof HTMLElement &&
+          (el.id === "alternatab-host" || el.classList?.contains("at-hud-container")),
+      );
+      if (!isInsideHost && searchInputRef && (e.key.length === 1 || e.key === "Backspace")) {
+        searchInputRef.focus();
+      }
       const handled = keyboardHandler(e);
       if (handled) {
         e.preventDefault();
@@ -645,6 +674,9 @@ export const App: Component<AppProps> = (props) => {
           aria-modal="true"
           aria-label="AlternaTab Command HUD"
           on:mousedown={(e: MouseEvent) => {
+            e.stopPropagation();
+          }}
+          on:keydown={(e: KeyboardEvent) => {
             e.stopPropagation();
           }}
         >

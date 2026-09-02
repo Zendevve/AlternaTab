@@ -41,7 +41,22 @@ export const PluginList: Component<PluginListProps> = (props) => {
                 role="option"
                 aria-selected={isSelected()}
               >
-                <div class="at-row-icon"><span style={{ "font-size": "12px" }}>◈</span></div>
+                <div class="at-row-icon">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.75"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <title>Plugin icon</title>
+                    <path d="M12 2L14.4 7.6L20 10L14.4 12.4L12 18L9.6 12.4L4 10L9.6 7.6L12 2Z" />
+                  </svg>
+                </div>
                 <div class="at-row-main">
                   <div class="at-row-title">
                     <For each={titleParts()}>{(p) => <span class={p.highlight ? "at-highlight" : ""}>{p.text}</span>}</For>

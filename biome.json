@@ -39,5 +39,20 @@
         "useAriaPropsSupportedByRole": "off"
       }
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "src/assets/styles/overlay.css",
+        "src/options/styles.css"
+      ],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noImportantStyles": "off"
+          }
+        }
+      }
+    }
+  ]
 }

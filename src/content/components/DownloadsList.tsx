@@ -40,7 +40,24 @@ export const DownloadsList: Component<DownloadsListProps> = (props) => {
                 role="option"
                 aria-selected={isSelected()}
               >
-                <div class="at-row-icon"><span style={{ "font-size": "12px" }}>⬇</span></div>
+                <div class="at-row-icon">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.75"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <title>Download icon</title>
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                </div>
                 <div class="at-row-main">
                   <div class="at-row-title"><For each={titleParts()}>{(p) => <span class={p.highlight ? "at-highlight" : ""}>{p.text}</span>}</For></div>
                   <div class="at-row-sub">

@@ -40,7 +40,23 @@ export const RecentlyClosedList: Component<RecentlyClosedListProps> = (props) =>
                 role="option"
                 aria-selected={isSelected()}
               >
-                <div class="at-row-icon"><span style={{ "font-size": "12px" }}>↩</span></div>
+                <div class="at-row-icon">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.75"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <title>Recently closed icon</title>
+                    <polyline points="1 4 1 10 7 10" />
+                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                  </svg>
+                </div>
                 <div class="at-row-main">
                   <div class="at-row-title"><For each={titleParts()}>{(p) => <span class={p.highlight ? "at-highlight" : ""}>{p.text}</span>}</For></div>
                   <div class="at-row-sub"><span class="at-row-domain">{item.domain}</span></div>

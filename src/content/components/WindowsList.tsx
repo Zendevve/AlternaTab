@@ -40,7 +40,25 @@ export const WindowsList: Component<WindowsListProps> = (props) => {
                 role="option"
                 aria-selected={isSelected()}
               >
-                <div class="at-row-icon"><span style={{ "font-size": "12px" }}>🗔</span></div>
+                <div class="at-row-icon">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.75"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <title>Window icon</title>
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                    <line x1="2" y1="8" x2="22" y2="8" />
+                    <line x1="6" y1="5.5" x2="6" y2="5.5" stroke-width="2" />
+                    <line x1="9" y1="5.5" x2="9" y2="5.5" stroke-width="2" />
+                  </svg>
+                </div>
                 <div class="at-row-main">
                   <div class="at-row-title"><For each={titleParts()}>{(p) => <span class={p.highlight ? "at-highlight" : ""}>{p.text}</span>}</For></div>
                   <div class="at-row-sub"><span class="at-row-meta">{item.tabCount} tabs {item.focused ? "• focused" : ""} {item.incognito ? "• incognito" : ""}</span></div>
