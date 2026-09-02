@@ -4,7 +4,7 @@ import type { BookmarkItem } from "../types/models";
 import { onMessage } from "../types/protocol";
 import { ok } from "../types/result";
 import { extractDomain } from "../utils/domain";
-import { BUILT_IN_COMMANDS } from "./commands";
+import { BUILT_IN_COMMANDS, executeCommand } from "./commands";
 import { groupTabsByDomain } from "./groups";
 import {
   activateTab,
@@ -254,5 +254,9 @@ export function registerBackgroundMessaging(): void {
     } catch (e) {
       return err("FOCUS_WINDOW_FAILED", e instanceof Error ? e.message : "Failed");
     }
+  });
+
+  onMessage("executeCommand", async (message) => {
+    return executeCommand(message.data.id);
   });
 }

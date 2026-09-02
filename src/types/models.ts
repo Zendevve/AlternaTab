@@ -146,7 +146,14 @@ export type CommandId =
   | "reload-all"
   | "toggle-theme"
   | "toggle-vim"
-  | "open-settings";
+  | "open-settings"
+  | "new-tab"
+  | "new-window"
+  | "new-incognito-window"
+  | "bookmark-this"
+  | "copy-url"
+  | "duplicate-tab"
+  | "clear-browsing-data";
 
 export interface CommandItem {
   id: CommandId;

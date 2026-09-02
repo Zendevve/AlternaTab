@@ -22,6 +22,8 @@ import {
   searchTabs,
   searchWindows,
 } from "../utils/search";
+import { parseQuickAction } from "../utils/search/parseActions";
+import { getCalcItem, getNavigateItem, getSearchFallbackItem } from "../utils/search/fallback";
 
 export function createSearchStore() {
   const [query, setQuery] = createSignal("");
@@ -39,6 +41,14 @@ export function createSearchStore() {
   const [focusedWindowId, setFocusedWindowId] = createSignal<number>(-1);
 
   const parsed = createMemo(() => parseQuery(query()));
+
+  const parsedAction = createMemo(() => parseQuickAction(query()));
+
+  const effectiveQuery = createMemo(() => {
+    const pa = parsedAction();
+    if (pa.action) return pa.baseQuery;
+    return parsed().query;
+  });
 
   const effectiveScope = createMemo<SearchScope>(() => {
     const p = parsed();
@@ -74,7 +84,7 @@ export function createSearchStore() {
       return [];
     }
 
-    return searchTabs(source, p.query);
+    return searchTabs(source, effectiveQuery());
   });
 
   const filteredCommands = createMemo(() => {
@@ -83,7 +93,7 @@ export function createSearchStore() {
     if (currentScope !== "commands" && p.scope !== "commands") {
       return [];
     }
-    return searchCommands(commands(), p.query);
+    return searchCommands(commands(), effectiveQuery());
   });
 
   const filteredGroups = createMemo(() => {
@@ -92,7 +102,7 @@ export function createSearchStore() {
     if (currentScope !== "groups" && p.scope !== "groups") {
       return [];
     }
-    return searchGroups(groups(), p.query);
+    return searchGroups(groups(), effectiveQuery());
   });
 
   const filteredBookmarks = createMemo(() => {
@@ -101,7 +111,7 @@ export function createSearchStore() {
     if (currentScope !== "bookmarks" && p.scope !== "bookmarks") {
       return [];
     }
-    return searchBookmarks(bookmarks(), p.query);
+    return searchBookmarks(bookmarks(), effectiveQuery());
   });
 
   const filteredHistory = createMemo(() => {
@@ -111,7 +121,7 @@ export function createSearchStore() {
       return [];
     }
     const deduped = dedupHistoryWithTabs(history(), tabs());
-    return searchHistory(deduped, p.query);
+    return searchHistory(deduped, effectiveQuery());
   });
 
   const filteredDownloads = createMemo(() => {
@@ -120,7 +130,7 @@ export function createSearchStore() {
     if (currentScope !== "downloads" && p.scope !== "downloads" && currentScope !== "all") {
       return [];
     }
-    return searchDownloads(downloads(), p.query);
+    return searchDownloads(downloads(), effectiveQuery());
   });
 
   const filteredRecentlyClosed = createMemo(() => {
@@ -129,7 +139,7 @@ export function createSearchStore() {
     if (currentScope !== "closed" && p.scope !== "closed") {
       return [];
     }
-    return searchRecentlyClosed(recentlyClosed(), p.query);
+    return searchRecentlyClosed(recentlyClosed(), effectiveQuery());
   });
 
   const filteredWindows = createMemo(() => {
@@ -138,8 +148,12 @@ export function createSearchStore() {
     if (currentScope !== "windows" && p.scope !== "windows") {
       return [];
     }
-    return searchWindows(windows(), p.query);
+    return searchWindows(windows(), effectiveQuery());
   });
+
+  const calcItem = createMemo(() => getCalcItem(query()));
+  const navigateItem = createMemo(() => getNavigateItem(query()));
+  const fallbackItem = createMemo(() => getSearchFallbackItem(query()));
 
   const totalItemCount = createMemo(() => {
     const c = effectiveScope();
@@ -190,6 +204,11 @@ export function createSearchStore() {
     filteredDownloads,
     filteredRecentlyClosed,
     filteredWindows,
+    calcItem,
+    navigateItem,
+    fallbackItem,
+    parsedAction,
+    effectiveQuery,
     totalItemCount,
   };
 }

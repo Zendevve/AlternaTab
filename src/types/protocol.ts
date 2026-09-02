@@ -1,6 +1,7 @@
 import { defineExtensionMessaging } from "@webext-core/messaging";
 import type {
   BookmarkItem,
+  CommandId,
   CommandItem,
   DownloadItem,
   ExtensionConfig,
@@ -48,6 +49,7 @@ export interface ProtocolMap {
   showDownloadInFolder(data: { downloadId: number }): Result<void>;
   openUrl(data: { url: string }): Result<void>;
   focusWindow(data: { windowId: number }): Result<void>;
+  executeCommand(data: { id: CommandId }): Result<unknown>;
 }
 
 export const { sendMessage, onMessage } = defineExtensionMessaging<ProtocolMap>();

@@ -192,12 +192,88 @@ export const App: Component<AppProps> = (props) => {
         if (res.ok) setConfig(res.value);
         break;
       }
-      default:
+      case "new-tab":
+      case "new-window":
+      case "new-incognito-window":
+      case "bookmark-this":
+      case "copy-url":
+      case "duplicate-tab":
+      case "clear-browsing-data": {
+        const res = await sendMessage("executeCommand", { id: cmd.id });
+        // For copy-url, also copy to clipboard from returned value
+        if (cmd.id === "copy-url" && res && typeof (res as any).value?.url === "string") {
+          try { await navigator.clipboard?.writeText((res as any).value.url); } catch {}
+        }
         break;
+      }
+      default: {
+        // Generic fallback for any future command via executeCommand
+        try {
+          await sendMessage("executeCommand", { id: cmd.id });
+        } catch {}
+        break;
+      }
     }
   };
 
   const handleSelect = async () => {
+    // Quick action suffix: e.g. "github >mute" — action on selected tab without switching scope
+    const pa = store.parsedAction();
+    if (pa.action) {
+      const tab = getSelectedTab();
+      if (tab) {
+        // Keep HUD open for non-destructive actions where possible
+        if (pa.action === "mute") {
+          await toggleMuteCurrent();
+          return;
+        }
+        if (pa.action === "pin") {
+          await togglePinCurrent();
+          return;
+        }
+        if (pa.action === "close") {
+          await closeCurrentTab();
+          return;
+        }
+        if (pa.action === "copy") {
+          try { await navigator.clipboard?.writeText(tab.url); } catch {}
+          closeOverlay();
+          return;
+        }
+        if (pa.action === "duplicate") {
+          await sendMessage("duplicateTab", { tabId: tab.id });
+          await loadData();
+          return;
+        }
+        if (pa.action === "move") {
+          await splitWindowCurrent();
+          return;
+        }
+        if (pa.action === "discard") {
+          await sendMessage("discardTabs", { tabIds: [tab.id] });
+          await loadData();
+          return;
+        }
+      }
+    }
+
+    // Calculator: primary action copies result
+    const calc = store.calcItem();
+    if (calc) {
+      try { await navigator.clipboard?.writeText(String(calc.result)); } catch {}
+      closeOverlay();
+      return;
+    }
+
+    // URL navigate: if navigate item exists and no local tab match is selected, prioritize navigate
+    const nav = store.navigateItem();
+    const hasLocalMatch = store.filteredTabs().length > 0 || store.filteredHistory().length > 0;
+    if (nav && !hasLocalMatch) {
+      closeOverlay();
+      await sendMessage("openUrl", { url: nav.url });
+      return;
+    }
+
     const sc = store.effectiveScope();
     if (sc === "commands") {
       await executeCurrentCommand();
@@ -210,6 +286,15 @@ export const App: Component<AppProps> = (props) => {
     } else if (sc === "windows") {
       await focusWindowItem();
     } else {
+      // Fallback: if still no local match, use fallback search engine
+      if (!hasLocalMatch) {
+        const fb = store.fallbackItem();
+        if (fb) {
+          closeOverlay();
+          await sendMessage("openUrl", { url: fb.url });
+          return;
+        }
+      }
       await activateCurrentTab();
     }
   };
@@ -509,6 +594,44 @@ export const App: Component<AppProps> = (props) => {
             }}
           />
 
+          <Show when={store.calcItem()}>
+            {(calc) => (
+              <div class="at-results-list" role="listbox" aria-label="Calculator">
+                <div
+                  class="at-row at-selected"
+                  role="option"
+                  aria-selected="true"
+                  on:click={() => handleSelect()}
+                >
+                  <div class="at-row-icon"><span style={{ "font-size": "12px" }}>∑</span></div>
+                  <div class="at-row-main">
+                    <div class="at-row-title">{calc().expression} = {String(calc().result)}</div>
+                    <div class="at-row-sub"><span class="at-row-meta">Press Enter to copy</span></div>
+                  </div>
+                  <div class="at-row-badges"><span class="at-badge">Calculator</span></div>
+                </div>
+              </div>
+            )}
+          </Show>
+          <Show when={store.navigateItem()}>
+            {(nav) => (
+              <div class="at-results-list" role="listbox" aria-label="Navigate">
+                <div
+                  class="at-row at-selected"
+                  role="option"
+                  aria-selected="true"
+                  on:click={() => handleSelect()}
+                >
+                  <div class="at-row-icon"><span style={{ "font-size": "12px" }}>↗</span></div>
+                  <div class="at-row-main">
+                    <div class="at-row-title">Go to {nav().url}</div>
+                    <div class="at-row-sub"><span class="at-row-domain">{nav().domain}</span></div>
+                  </div>
+                  <div class="at-row-badges"><span class="at-badge">Navigate</span></div>
+                </div>
+              </div>
+            )}
+          </Show>
           <Show when={store.effectiveScope() === "commands"}>
             <CommandPalette
               commands={store.filteredCommands()}
