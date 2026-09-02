@@ -6,6 +6,8 @@ import type {
   DownloadItem,
   ExtensionConfig,
   HistoryItem,
+  PluginItem,
+  PluginResultItem,
   RecentlyClosedItem,
   TabFilter,
   TabGroupItem,
@@ -50,6 +52,11 @@ export interface ProtocolMap {
   openUrl(data: { url: string }): Result<void>;
   focusWindow(data: { windowId: number }): Result<void>;
   executeCommand(data: { id: CommandId }): Result<unknown>;
+  getPlugins(): PluginItem[];
+  registerPlugin(data: { code: string; sourceUrl?: string }): Result<PluginItem>;
+  deletePlugin(data: { id: string }): Result<void>;
+  togglePlugin(data: { id: string; enabled: boolean }): Result<PluginItem>;
+  runPlugin(data: { prefix: string; query: string }): PluginResultItem[];
 }
 
 export const { sendMessage, onMessage } = defineExtensionMessaging<ProtocolMap>();

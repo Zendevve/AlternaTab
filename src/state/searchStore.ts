@@ -23,6 +23,7 @@ import {
   searchWindows,
 } from "../utils/search";
 import { parseQuickAction } from "../utils/search/parseActions";
+import { parsePluginQuery } from "../utils/search/plugins";
 import { getCalcItem, getNavigateItem, getSearchFallbackItem } from "../utils/search/fallback";
 
 export function createSearchStore() {
@@ -36,6 +37,8 @@ export function createSearchStore() {
   const [downloads, setDownloads] = createSignal<DownloadItem[]>([]);
   const [recentlyClosed, setRecentlyClosed] = createSignal<RecentlyClosedItem[]>([]);
   const [windows, setWindows] = createSignal<WindowItem[]>([]);
+  const [pluginResults, setPluginResults] = createSignal<import("../types/models").PluginResultItem[]>([]);
+  const [pluginPrefix, setPluginPrefix] = createSignal<string | null>(null);
   const [selectedIndex, setSelectedIndex] = createSignal(0);
   const [activeTabId, setActiveTabId] = createSignal<number>(-1);
   const [focusedWindowId, setFocusedWindowId] = createSignal<number>(-1);
@@ -60,6 +63,9 @@ export function createSearchStore() {
     if (p.scope === "downloads") return "downloads";
     if (p.scope === "closed") return "closed";
     if (p.scope === "windows") return "windows";
+    // Plugin prefix overrides scope
+    const pq = parsePluginQuery(query());
+    if (pq) return "plugins" as SearchScope;
     return scope();
   });
 
@@ -164,6 +170,7 @@ export function createSearchStore() {
     if (c === "downloads") return filteredDownloads().length;
     if (c === "closed") return filteredRecentlyClosed().length;
     if (c === "windows") return filteredWindows().length;
+    if (c === "plugins") return pluginResults().length;
     return filteredTabs().length;
   });
 
@@ -209,6 +216,10 @@ export function createSearchStore() {
     fallbackItem,
     parsedAction,
     effectiveQuery,
+    pluginResults,
+    setPluginResults,
+    pluginPrefix,
+    setPluginPrefix,
     totalItemCount,
   };
 }

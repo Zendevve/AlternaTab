@@ -1,0 +1,34 @@
+[
+  {
+    "id": "gh",
+    "name": "GitHub Search",
+    "prefix": "gh",
+    "description": "Search GitHub repos and issues",
+    "sourceUrl": "https://raw.githubusercontent.com/example/plugins/main/gh.js",
+    "icon": "github"
+  },
+  {
+    "id": "npm",
+    "name": "NPM Search",
+    "prefix": "npm",
+    "description": "Search npm packages",
+    "sourceUrl": "https://raw.githubusercontent.com/example/plugins/main/npm.js",
+    "icon": "npm"
+  },
+  {
+    "id": "so",
+    "name": "StackOverflow",
+    "prefix": "so",
+    "description": "Search StackOverflow questions",
+    "sourceUrl": "https://raw.githubusercontent.com/example/plugins/main/so.js",
+    "icon": "stackoverflow"
+  },
+  {
+    "id": "mdn",
+    "name": "MDN Docs",
+    "prefix": "mdn",
+    "description": "Search MDN Web Docs",
+    "sourceUrl": "https://raw.githubusercontent.com/example/plugins/main/mdn.js",
+    "icon": "mdn"
+  }
+]

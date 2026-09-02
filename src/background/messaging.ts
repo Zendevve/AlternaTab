@@ -2,9 +2,10 @@ import { configStore } from "../state/configStore";
 import { tabStore } from "../state/tabStore";
 import type { BookmarkItem } from "../types/models";
 import { onMessage } from "../types/protocol";
-import { ok } from "../types/result";
+import { err, ok } from "../types/result";
 import { extractDomain } from "../utils/domain";
 import { BUILT_IN_COMMANDS, executeCommand } from "./commands";
+import { deletePlugin, getPluginByPrefix, loadPlugins, registerPlugin, runPlugin, togglePlugin } from "./plugins";
 import { groupTabsByDomain } from "./groups";
 import {
   activateTab,
@@ -23,7 +24,6 @@ import { deleteHistoryEntry, getHistoryItems } from "./history";
 import { getDownloads, openDownload, showDownloadInFolder } from "./downloads";
 import { getRecentlyClosed } from "./recentlyClosed";
 import { getWindows, splitTabToNewWindow } from "./windows";
-import { err } from "../types/result";
 
 function collectBookmarks(nodes: chrome.bookmarks.BookmarkTreeNode[], out: BookmarkItem[]): void {
   for (const node of nodes) {
@@ -258,5 +258,40 @@ export function registerBackgroundMessaging(): void {
 
   onMessage("executeCommand", async (message) => {
     return executeCommand(message.data.id);
+  });
+
+  onMessage("getPlugins", async () => {
+    return loadPlugins();
+  });
+
+  onMessage("registerPlugin", async (message) => {
+    try {
+      const item = await registerPlugin(message.data.code, message.data.sourceUrl);
+      return { ok: true as const, value: item };
+    } catch (e) {
+      return err("REGISTER_FAILED", e instanceof Error ? e.message : String(e));
+    }
+  });
+
+  onMessage("deletePlugin", async (message) => {
+    try {
+      await deletePlugin(message.data.id);
+      return { ok: true as const, value: undefined };
+    } catch (e) {
+      return err("DELETE_FAILED", e instanceof Error ? e.message : String(e));
+    }
+  });
+
+  onMessage("togglePlugin", async (message) => {
+    try {
+      const updated = await togglePlugin(message.data.id, message.data.enabled);
+      return { ok: true as const, value: updated };
+    } catch (e) {
+      return err("TOGGLE_FAILED", e instanceof Error ? e.message : String(e));
+    }
+  });
+
+  onMessage("runPlugin", async (message) => {
+    return runPlugin(message.data.prefix, message.data.query);
   });
 }

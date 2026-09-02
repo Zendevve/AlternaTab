@@ -81,6 +81,26 @@ export interface RecentlyClosedItem {
   windowId?: number;
 }
 
+export interface PluginItem {
+  id: string;
+  prefix: string;
+  title: string;
+  description: string;
+  enabled: boolean;
+  code: string;
+  sourceUrl?: string;
+  createdAt: number;
+}
+
+export interface PluginResultItem {
+  id: string;
+  pluginId: string;
+  title: string;
+  subtitle?: string;
+  url?: string;
+  domain?: string;
+}
+
 export interface WindowItem {
   id: number;
   focused: boolean;
@@ -109,7 +129,7 @@ export type KeyboardProfile = "standard" | "vim" | "emacs";
 
 export type ThemeVariant = "light" | "dark" | "oled" | "system";
 
-export type SearchScope = "all" | "window" | "tabs-only" | "groups" | "bookmarks" | "commands" | "history" | "downloads" | "closed" | "windows";
+export type SearchScope = "all" | "window" | "tabs-only" | "groups" | "bookmarks" | "commands" | "history" | "downloads" | "closed" | "windows" | "plugins";
 
 export interface ExtensionConfig {
   version: string;

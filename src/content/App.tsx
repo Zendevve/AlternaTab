@@ -2,10 +2,12 @@ import { type Component, createEffect, createSignal, onCleanup, onMount, Show } 
 import { createSearchStore } from "../state/searchStore";
 import type { CommandItem, DownloadItem, ExtensionConfig, HistoryItem, RecentlyClosedItem, TabItem, WindowItem } from "../types/models";
 import { sendMessage } from "../types/protocol";
+import { parsePluginQuery } from "../utils/search/plugins";
 import { DEFAULT_CONFIG } from "../utils/validation";
 import { CommandPalette } from "./components/CommandPalette";
 import { DownloadsList } from "./components/DownloadsList";
 import { HistoryList } from "./components/HistoryList";
+import { PluginList } from "./components/PluginList";
 import { RecentlyClosedList } from "./components/RecentlyClosedList";
 import { WindowsList } from "./components/WindowsList";
 import { ContextActions, type ContextActionType } from "./components/ContextActions";
@@ -275,6 +277,10 @@ export const App: Component<AppProps> = (props) => {
     }
 
     const sc = store.effectiveScope();
+    if (sc === "plugins") {
+      await openPluginItem();
+      return;
+    }
     if (sc === "commands") {
       await executeCurrentCommand();
     } else if (sc === "history") {
@@ -367,6 +373,43 @@ export const App: Component<AppProps> = (props) => {
     closeOverlay();
     await sendMessage("focusWindow", { windowId: target.id });
   };
+
+  const openPluginItem = async (item?: import("../types/models").PluginResultItem) => {
+    const target = item ?? store.pluginResults()[store.selectedIndex()] as import("../types/models").PluginResultItem | undefined;
+    if (!target) return;
+    if (target.url) {
+      closeOverlay();
+      await sendMessage("openUrl", { url: target.url });
+    }
+  };
+
+  // Plugin prefix watcher: when query starts with plugin prefix, run plugin and populate store
+  createEffect(() => {
+    const q = store.query();
+    const pq = parsePluginQuery(q);
+    if (pq) {
+      store.setPluginPrefix(pq.prefix);
+      // async fetch plugin results
+      (async () => {
+        try {
+          const results = await sendMessage("runPlugin", { prefix: pq.prefix, query: pq.query });
+          if (Array.isArray(results)) {
+            store.setPluginResults(results as any);
+            store.setSelectedIndex(0);
+          } else {
+            store.setPluginResults([]);
+          }
+        } catch {
+          store.setPluginResults([]);
+        }
+      })();
+    } else {
+      if (store.pluginPrefix() !== null) {
+        store.setPluginPrefix(null);
+        store.setPluginResults([]);
+      }
+    }
+  });
 
   const handleContextAction = async (action: ContextActionType) => {
     const tab = getSelectedTab();
@@ -681,7 +724,18 @@ export const App: Component<AppProps> = (props) => {
               onHover={(idx) => store.setSelectedIndex(idx)}
             />
           </Show>
-          <Show when={! ["commands", "history", "downloads", "closed", "windows"].includes(store.effectiveScope() as string)}>
+          <Show when={store.effectiveScope() === "plugins"}>
+            <PluginList
+              items={store.pluginResults()}
+              selectedIndex={store.selectedIndex()}
+              query={store.parsedAction().baseQuery}
+              prefix={store.pluginPrefix() ?? ""}
+              maxRenderedItems={config().maxRenderedItems}
+              onSelect={(item) => openPluginItem(item)}
+              onHover={(idx) => store.setSelectedIndex(idx)}
+            />
+          </Show>
+          <Show when={! ["commands", "history", "downloads", "closed", "windows", "plugins"].includes(store.effectiveScope() as string)}>
             <TabList
               tabs={store.filteredTabs()}
               selectedIndex={store.selectedIndex()}
