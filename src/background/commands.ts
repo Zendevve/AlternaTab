@@ -144,6 +144,48 @@ export const BUILT_IN_COMMANDS: CommandItem[] = [
     category: "System",
     keywords: ["options", "config", "preferences"],
   },
+  {
+    id: "new-tab",
+    title: "New Tab",
+    category: "Navigation",
+    keywords: ["create", "tab", "blank"],
+  },
+  {
+    id: "new-window",
+    title: "New Window",
+    category: "Window",
+    keywords: ["create", "window", "blank"],
+  },
+  {
+    id: "new-incognito-window",
+    title: "New Incognito Window",
+    category: "Window",
+    keywords: ["private", "incognito", "window"],
+  },
+  {
+    id: "bookmark-this",
+    title: "Bookmark Current Tab",
+    category: "Navigation",
+    keywords: ["bookmark", "save", "favorite"],
+  },
+  {
+    id: "copy-url",
+    title: "Copy Current Tab URL",
+    category: "Navigation",
+    keywords: ["copy", "url", "clipboard", "link"],
+  },
+  {
+    id: "duplicate-tab",
+    title: "Duplicate Current Tab",
+    category: "Tab",
+    keywords: ["duplicate", "clone", "copy"],
+  },
+  {
+    id: "clear-browsing-data",
+    title: "Clear Browsing Data",
+    category: "System",
+    keywords: ["clear", "history", "cache", "cookies"],
+  },
 ];
 
 export async function executeCommand(
@@ -211,6 +253,78 @@ export async function executeCommand(
         return ok({ opened: true });
       }
       return err("SETTINGS_FAILED", "Options page is unavailable");
+    }
+    case "new-tab": {
+      if (typeof chrome !== "undefined" && chrome.tabs?.create) {
+        await chrome.tabs.create({ active: true });
+        return ok({ opened: true });
+      }
+      return err("API_UNAVAILABLE", "tabs.create unavailable");
+    }
+    case "new-window": {
+      if (typeof chrome !== "undefined" && chrome.windows?.create) {
+        await chrome.windows.create({});
+        return ok({ opened: true });
+      }
+      return err("API_UNAVAILABLE", "windows.create unavailable");
+    }
+    case "new-incognito-window": {
+      if (typeof chrome !== "undefined" && chrome.windows?.create) {
+        await chrome.windows.create({ incognito: true });
+        return ok({ opened: true });
+      }
+      return err("API_UNAVAILABLE", "windows.create unavailable");
+    }
+    case "bookmark-this": {
+      if (typeof chrome !== "undefined" && chrome.bookmarks?.create && chrome.tabs?.query) {
+        try {
+          const [active] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+          if (active?.url) {
+            await chrome.bookmarks.create({ title: active.title || active.url, url: active.url });
+            return ok({ bookmarked: true });
+          }
+        } catch (e) {
+          return err("BOOKMARK_FAILED", e instanceof Error ? e.message : "Failed");
+        }
+      }
+      return err("API_UNAVAILABLE", "bookmarks unavailable");
+    }
+    case "copy-url": {
+      if (typeof chrome !== "undefined" && chrome.tabs?.query) {
+        try {
+          const [active] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+          if (active?.url) return ok({ url: active.url });
+        } catch (e) {
+          return err("COPY_FAILED", e instanceof Error ? e.message : "Failed");
+        }
+      }
+      return err("API_UNAVAILABLE", "tabs unavailable");
+    }
+    case "duplicate-tab": {
+      if (currentTabId && typeof chrome !== "undefined" && chrome.tabs?.duplicate) {
+        try {
+          const dup = await chrome.tabs.duplicate(currentTabId);
+          return ok({ newTabId: dup?.id });
+        } catch (e) {
+          return err("DUPLICATE_FAILED", e instanceof Error ? e.message : "Failed");
+        }
+      }
+      return err("NO_TAB", "No tab to duplicate");
+    }
+    case "clear-browsing-data": {
+      if (typeof chrome !== "undefined" && (chrome as any).browsingData?.remove) {
+        try {
+          await (chrome as any).browsingData.remove({}, { history: true, cache: true, cookies: false }, () => {});
+          return ok({ cleared: true });
+        } catch (e) {
+          return err("CLEAR_FAILED", e instanceof Error ? e.message : "Failed");
+        }
+      }
+      if (typeof chrome !== "undefined" && chrome.tabs?.create) {
+        await chrome.tabs.create({ url: "chrome://settings/clearBrowserData", active: true });
+        return ok({ opened: true });
+      }
+      return err("API_UNAVAILABLE", "browsingData unavailable");
     }
     default:
       return err("UNKNOWN_COMMAND", `Command "${id}" not recognized`);

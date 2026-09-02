@@ -1,9 +1,15 @@
 import { type Component, createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
 import { createSearchStore } from "../state/searchStore";
-import type { CommandItem, ExtensionConfig, TabItem } from "../types/models";
+import type { CommandItem, DownloadItem, ExtensionConfig, HistoryItem, RecentlyClosedItem, TabItem, WindowItem } from "../types/models";
 import { sendMessage } from "../types/protocol";
+import { parsePluginQuery } from "../utils/search/plugins";
 import { DEFAULT_CONFIG } from "../utils/validation";
 import { CommandPalette } from "./components/CommandPalette";
+import { DownloadsList } from "./components/DownloadsList";
+import { HistoryList } from "./components/HistoryList";
+import { PluginList } from "./components/PluginList";
+import { RecentlyClosedList } from "./components/RecentlyClosedList";
+import { WindowsList } from "./components/WindowsList";
 import { ContextActions, type ContextActionType } from "./components/ContextActions";
 import { SearchBar } from "./components/SearchBar";
 import { StatusBar } from "./components/StatusBar";
@@ -27,11 +33,16 @@ export const App: Component<AppProps> = (props) => {
 
   const loadData = async () => {
     try {
-      const [tabData, cfg, cmds, bmarks] = await Promise.all([
+      const [tabData, cfg, cmds, bmarks, hist, dls, closed, wins, customTpls] = await Promise.all([
         sendMessage("getTabs", undefined),
         sendMessage("getConfig", undefined),
         sendMessage("getCommands", undefined),
         sendMessage("getBookmarks", undefined),
+        sendMessage("getHistory", { maxResults: 200 }),
+        sendMessage("getDownloads", { maxResults: 100 }),
+        sendMessage("getRecentlyClosed", { maxResults: 25 }),
+        sendMessage("getWindows", undefined),
+        (sendMessage as any)("getCustomTemplates", undefined),
       ]);
 
       if (tabData) {
@@ -51,6 +62,21 @@ export const App: Component<AppProps> = (props) => {
       }
       if (bmarks) {
         store.setBookmarks(bmarks);
+      }
+      if (hist) {
+        store.setHistory(hist as any);
+      }
+      if (dls) {
+        store.setDownloads(dls as any);
+      }
+      if (closed) {
+        store.setRecentlyClosed(closed as any);
+      }
+      if (wins) {
+        store.setWindows(wins as any);
+      }
+      if (customTpls) {
+        store.setCustomTemplates(customTpls as any);
       }
     } catch {
       // Background worker might be restarting
@@ -76,16 +102,20 @@ export const App: Component<AppProps> = (props) => {
   };
 
   const cycleScope = () => {
-    const scopes: Array<"all" | "window" | "tabs-only" | "groups" | "bookmarks" | "commands"> = [
+    const scopes: Array<"all" | "window" | "tabs-only" | "groups" | "bookmarks" | "commands" | "history" | "downloads" | "closed" | "windows"> = [
       "all",
       "window",
       "tabs-only",
       "groups",
       "bookmarks",
       "commands",
+      "history",
+      "downloads",
+      "closed",
+      "windows",
     ];
     const current = store.effectiveScope();
-    const nextIdx = (scopes.indexOf(current) + 1) % scopes.length;
+    const nextIdx = (scopes.indexOf(current as any) + 1) % scopes.length;
     store.setScope(scopes[nextIdx] ?? "all");
     store.setSelectedIndex(0);
   };
@@ -168,15 +198,123 @@ export const App: Component<AppProps> = (props) => {
         if (res.ok) setConfig(res.value);
         break;
       }
-      default:
+      case "new-tab":
+      case "new-window":
+      case "new-incognito-window":
+      case "bookmark-this":
+      case "copy-url":
+      case "duplicate-tab":
+      case "clear-browsing-data": {
+        const res = await sendMessage("executeCommand", { id: cmd.id });
+        // For copy-url, also copy to clipboard from returned value
+        if (cmd.id === "copy-url" && res && typeof (res as any).value?.url === "string") {
+          try { await navigator.clipboard?.writeText((res as any).value.url); } catch {}
+        }
         break;
+      }
+      default: {
+        // Generic fallback for any future command via executeCommand
+        try {
+          await sendMessage("executeCommand", { id: cmd.id });
+        } catch {}
+        break;
+      }
     }
   };
 
   const handleSelect = async () => {
-    if (store.effectiveScope() === "commands") {
+    // Plugin prefix wins first (priority 1)
+    const scEarly = store.effectiveScope();
+    if (scEarly === "plugins") {
+      await openPluginItem();
+      return;
+    }
+    // Quick action suffix: e.g. "github >mute" — action on selected tab without switching scope
+    const pa = store.parsedAction();
+    if (pa.action) {
+      const tab = getSelectedTab();
+      if (tab) {
+        // Keep HUD open for non-destructive actions where possible
+        if (pa.action === "mute") {
+          await toggleMuteCurrent();
+          return;
+        }
+        if (pa.action === "pin") {
+          await togglePinCurrent();
+          return;
+        }
+        if (pa.action === "close") {
+          await closeCurrentTab();
+          return;
+        }
+        if (pa.action === "copy") {
+          try { await navigator.clipboard?.writeText(tab.url); } catch {}
+          closeOverlay();
+          return;
+        }
+        if (pa.action === "duplicate") {
+          await sendMessage("duplicateTab", { tabId: tab.id });
+          await loadData();
+          return;
+        }
+        if (pa.action === "move") {
+          await splitWindowCurrent();
+          return;
+        }
+        if (pa.action === "discard") {
+          await sendMessage("discardTabs", { tabIds: [tab.id] });
+          await loadData();
+          return;
+        }
+      }
+    }
+
+    // Template bang: priority 2 after plugins
+    const tpl = store.templateResult();
+    if (tpl) {
+      closeOverlay();
+      await sendMessage("openUrl", { url: tpl.url });
+      return;
+    }
+
+    // URL navigate: if navigate item exists and no local tab match is selected, prioritize navigate
+    const nav = store.navigateItem();
+    const hasLocalMatch = store.filteredTabs().length > 0 || store.filteredHistory().length > 0;
+    if (nav && !hasLocalMatch) {
+      closeOverlay();
+      await sendMessage("openUrl", { url: nav.url });
+      return;
+    }
+
+    // Calculator: primary action copies result
+    const calc = store.calcItem();
+    if (calc) {
+      try { await navigator.clipboard?.writeText(String(calc.result)); } catch {}
+      closeOverlay();
+      return;
+    }
+
+    const sc = store.effectiveScope();
+    if (sc === "commands") {
       await executeCurrentCommand();
+    } else if (sc === "history") {
+      await openHistoryItem();
+    } else if (sc === "downloads") {
+      await openDownloadItem();
+    } else if (sc === "closed") {
+      await restoreClosedItem();
+    } else if (sc === "windows") {
+      await focusWindowItem();
     } else {
+      // Fallback: if still no local match, use fallback search engine
+      if (!hasLocalMatch) {
+        const fb = store.fallbackItem();
+        if (fb) {
+          closeOverlay();
+          await sendMessage("openUrl", { url: fb.url });
+          return;
+        }
+      }
       await activateCurrentTab();
     }
   };
@@ -213,6 +351,79 @@ export const App: Component<AppProps> = (props) => {
     const refreshed = await sendMessage("getTabs", undefined);
     if (refreshed) store.setTabs(refreshed.tabs);
   };
+
+  const openHistoryItem = async (item?: HistoryItem) => {
+    const target = item ?? store.filteredHistory()[store.selectedIndex()] as HistoryItem | undefined;
+    if (!target) return;
+    closeOverlay();
+    await sendMessage("openUrl", { url: target.url });
+  };
+
+  const openDownloadItem = async (item?: DownloadItem) => {
+    const target = item ?? store.filteredDownloads()[store.selectedIndex()] as DownloadItem | undefined;
+    if (!target) return;
+    closeOverlay();
+    await sendMessage("openDownload", { downloadId: target.id });
+  };
+
+  const restoreClosedItem = async (item?: RecentlyClosedItem) => {
+    const target = item ?? store.filteredRecentlyClosed()[store.selectedIndex()] as RecentlyClosedItem | undefined;
+    if (!target) return;
+    closeOverlay();
+    try {
+      if (typeof chrome !== "undefined" && chrome.sessions?.restore) {
+        await chrome.sessions.restore(target.sessionId);
+      } else {
+        await sendMessage("restoreClosedTab", undefined);
+      }
+    } catch {
+      await sendMessage("restoreClosedTab", undefined);
+    }
+  };
+
+  const focusWindowItem = async (item?: WindowItem) => {
+    const target = item ?? store.filteredWindows()[store.selectedIndex()] as WindowItem | undefined;
+    if (!target) return;
+    closeOverlay();
+    await sendMessage("focusWindow", { windowId: target.id });
+  };
+
+  const openPluginItem = async (item?: import("../types/models").PluginResultItem) => {
+    const target = item ?? store.pluginResults()[store.selectedIndex()] as import("../types/models").PluginResultItem | undefined;
+    if (!target) return;
+    if (target.url) {
+      closeOverlay();
+      await sendMessage("openUrl", { url: target.url });
+    }
+  };
+
+  // Plugin prefix watcher: when query starts with plugin prefix, run plugin and populate store
+  createEffect(() => {
+    const q = store.query();
+    const pq = parsePluginQuery(q);
+    if (pq) {
+      store.setPluginPrefix(pq.prefix);
+      // async fetch plugin results
+      (async () => {
+        try {
+          const results = await sendMessage("runPlugin", { prefix: pq.prefix, query: pq.query });
+          if (Array.isArray(results)) {
+            store.setPluginResults(results as any);
+            store.setSelectedIndex(0);
+          } else {
+            store.setPluginResults([]);
+          }
+        } catch {
+          store.setPluginResults([]);
+        }
+      })();
+    } else {
+      if (store.pluginPrefix() !== null) {
+        store.setPluginPrefix(null);
+        store.setPluginResults([]);
+      }
+    }
+  });
 
   const handleContextAction = async (action: ContextActionType) => {
     const tab = getSelectedTab();
@@ -440,28 +651,134 @@ export const App: Component<AppProps> = (props) => {
             }}
           />
 
-          <Show
-            when={store.effectiveScope() === "commands"}
-            fallback={
-              <TabList
-                tabs={store.filteredTabs()}
-                selectedIndex={store.selectedIndex()}
-                query={store.parsed().query}
-                domainColors={config().domainColors}
-                activeTabId={store.activeTabId()}
-                focusedWindowId={store.focusedWindowId()}
-                maxRenderedItems={config().maxRenderedItems}
-                onSelectTab={(tab) => activateCurrentTab(tab)}
-                onHoverTab={(idx) => store.setSelectedIndex(idx)}
-              />
-            }
-          >
+          <Show when={store.templateResult()}>
+            {(tpl) => (
+              <div class="at-results-list" role="listbox" aria-label="Template">
+                <div
+                  class="at-row at-selected"
+                  role="option"
+                  aria-selected="true"
+                  on:click={() => handleSelect()}
+                >
+                  <div class="at-row-icon"><span style={{ "font-size": "12px" }}>!</span></div>
+                  <div class="at-row-main">
+                    <div class="at-row-title">{tpl().title}</div>
+                    <div class="at-row-sub"><span class="at-row-domain">{tpl().domain}</span><span class="at-row-meta">Press Enter to search</span></div>
+                  </div>
+                  <div class="at-row-badges"><span class="at-badge">Template:{tpl().templateId}</span></div>
+                </div>
+              </div>
+            )}
+          </Show>
+          <Show when={store.calcItem()}>
+            {(calc) => (
+              <div class="at-results-list" role="listbox" aria-label="Calculator">
+                <div
+                  class="at-row at-selected"
+                  role="option"
+                  aria-selected="true"
+                  on:click={() => handleSelect()}
+                >
+                  <div class="at-row-icon"><span style={{ "font-size": "12px" }}>∑</span></div>
+                  <div class="at-row-main">
+                    <div class="at-row-title">{calc().expression} = {String(calc().result)}</div>
+                    <div class="at-row-sub"><span class="at-row-meta">Press Enter to copy</span></div>
+                  </div>
+                  <div class="at-row-badges"><span class="at-badge">Calculator</span></div>
+                </div>
+              </div>
+            )}
+          </Show>
+          <Show when={store.navigateItem()}>
+            {(nav) => (
+              <div class="at-results-list" role="listbox" aria-label="Navigate">
+                <div
+                  class="at-row at-selected"
+                  role="option"
+                  aria-selected="true"
+                  on:click={() => handleSelect()}
+                >
+                  <div class="at-row-icon"><span style={{ "font-size": "12px" }}>↗</span></div>
+                  <div class="at-row-main">
+                    <div class="at-row-title">Go to {nav().url}</div>
+                    <div class="at-row-sub"><span class="at-row-domain">{nav().domain}</span></div>
+                  </div>
+                  <div class="at-row-badges"><span class="at-badge">Navigate</span></div>
+                </div>
+              </div>
+            )}
+          </Show>
+          <Show when={store.effectiveScope() === "commands"}>
             <CommandPalette
               commands={store.filteredCommands()}
               selectedIndex={store.selectedIndex()}
               query={store.parsed().query}
               onSelect={executeCurrentCommand}
               onHoverCommand={(idx) => store.setSelectedIndex(idx)}
+            />
+          </Show>
+          <Show when={store.effectiveScope() === "history"}>
+            <HistoryList
+              items={store.filteredHistory()}
+              selectedIndex={store.selectedIndex()}
+              query={store.parsed().query}
+              maxRenderedItems={config().maxRenderedItems}
+              onSelect={(item) => openHistoryItem(item)}
+              onHover={(idx) => store.setSelectedIndex(idx)}
+            />
+          </Show>
+          <Show when={store.effectiveScope() === "downloads"}>
+            <DownloadsList
+              items={store.filteredDownloads()}
+              selectedIndex={store.selectedIndex()}
+              query={store.parsed().query}
+              maxRenderedItems={config().maxRenderedItems}
+              onSelect={(item) => openDownloadItem(item)}
+              onHover={(idx) => store.setSelectedIndex(idx)}
+            />
+          </Show>
+          <Show when={store.effectiveScope() === "closed"}>
+            <RecentlyClosedList
+              items={store.filteredRecentlyClosed()}
+              selectedIndex={store.selectedIndex()}
+              query={store.parsed().query}
+              maxRenderedItems={config().maxRenderedItems}
+              onSelect={(item) => restoreClosedItem(item)}
+              onHover={(idx) => store.setSelectedIndex(idx)}
+            />
+          </Show>
+          <Show when={store.effectiveScope() === "windows"}>
+            <WindowsList
+              items={store.filteredWindows()}
+              selectedIndex={store.selectedIndex()}
+              query={store.parsed().query}
+              maxRenderedItems={config().maxRenderedItems}
+              onSelect={(item) => focusWindowItem(item)}
+              onHover={(idx) => store.setSelectedIndex(idx)}
+            />
+          </Show>
+          <Show when={store.effectiveScope() === "plugins"}>
+            <PluginList
+              items={store.pluginResults()}
+              selectedIndex={store.selectedIndex()}
+              query={store.parsedAction().baseQuery}
+              prefix={store.pluginPrefix() ?? ""}
+              maxRenderedItems={config().maxRenderedItems}
+              onSelect={(item) => openPluginItem(item)}
+              onHover={(idx) => store.setSelectedIndex(idx)}
+            />
+          </Show>
+          <Show when={! ["commands", "history", "downloads", "closed", "windows", "plugins", "templates"].includes(store.effectiveScope() as string)}>
+            <TabList
+              tabs={store.filteredTabs()}
+              selectedIndex={store.selectedIndex()}
+              query={store.parsed().query}
+              domainColors={config().domainColors}
+              activeTabId={store.activeTabId()}
+              focusedWindowId={store.focusedWindowId()}
+              maxRenderedItems={config().maxRenderedItems}
+              onSelectTab={(tab) => activateCurrentTab(tab)}
+              onHoverTab={(idx) => store.setSelectedIndex(idx)}
             />
           </Show>
 

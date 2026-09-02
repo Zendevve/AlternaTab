@@ -48,6 +48,95 @@ export interface BookmarkItem {
   url: string;
   domain: string;
 }
+export interface HistoryItem {
+  id: string;
+  url: string;
+  title: string;
+  domain: string;
+  lastVisitTime?: number;
+  visitCount?: number;
+  typedCount?: number;
+}
+
+export interface DownloadItem {
+  id: number;
+  url: string;
+  filename: string;
+  domain: string;
+  mime?: string;
+  state?: string;
+  fileSize?: number;
+  startTime: string;
+  endTime?: string;
+}
+
+export interface RecentlyClosedItem {
+  sessionId: string;
+  title: string;
+  url: string;
+  domain: string;
+  favIconUrl?: string;
+  lastModified?: number;
+  tabId?: number;
+  windowId?: number;
+}
+
+export interface PluginItem {
+  id: string;
+  prefix: string;
+  title: string;
+  description: string;
+  enabled: boolean;
+  code: string;
+  sourceUrl?: string;
+  createdAt: number;
+}
+
+export interface PluginResultItem {
+  id: string;
+  pluginId: string;
+  title: string;
+  subtitle?: string;
+  url?: string;
+  domain?: string;
+}
+
+export interface SearchTemplateItem {
+  id: string;
+  title: string;
+  category: string;
+  urlTemplate: string;
+  keywords: string[];
+  icon?: string;
+  domain?: string;
+}
+
+export interface SearchTemplateResultItem {
+  id: string;
+  templateId: string;
+  title: string;
+  url: string;
+  domain: string;
+  query: string;
+}
+
+export interface WindowItem {
+  id: number;
+  focused: boolean;
+  incognito: boolean;
+  tabCount: number;
+  title?: string;
+}
+
+export type LauncherKind = "tab" | "group" | "bookmark" | "history" | "closed" | "download" | "window" | "command";
+
+export interface LauncherItem {
+  kind: LauncherKind;
+  id: string;
+  title: string;
+  url?: string;
+  domain?: string;
+}
 
 export interface PersistedTabStats {
   identityKey: string;
@@ -59,7 +148,7 @@ export type KeyboardProfile = "standard" | "vim" | "emacs";
 
 export type ThemeVariant = "light" | "dark" | "oled" | "system";
 
-export type SearchScope = "all" | "window" | "tabs-only" | "groups" | "bookmarks" | "commands";
+export type SearchScope = "all" | "window" | "tabs-only" | "groups" | "bookmarks" | "commands" | "history" | "downloads" | "closed" | "windows" | "plugins" | "templates";
 
 export interface ExtensionConfig {
   version: string;
@@ -96,7 +185,14 @@ export type CommandId =
   | "reload-all"
   | "toggle-theme"
   | "toggle-vim"
-  | "open-settings";
+  | "open-settings"
+  | "new-tab"
+  | "new-window"
+  | "new-incognito-window"
+  | "bookmark-this"
+  | "copy-url"
+  | "duplicate-tab"
+  | "clear-browsing-data";
 
 export interface CommandItem {
   id: CommandId;
