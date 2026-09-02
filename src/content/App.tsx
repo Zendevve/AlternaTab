@@ -4,6 +4,7 @@ import type { CommandItem, DownloadItem, ExtensionConfig, HistoryItem, RecentlyC
 import { sendMessage } from "../types/protocol";
 import { parsePluginQuery } from "../utils/search/plugins";
 import { DEFAULT_CONFIG } from "../utils/validation";
+import { BangList } from "./components/BangList";
 import { CommandPalette } from "./components/CommandPalette";
 import { DownloadsList } from "./components/DownloadsList";
 import { HistoryList } from "./components/HistoryList";
@@ -274,6 +275,17 @@ export const App: Component<AppProps> = (props) => {
           await loadData();
           return;
         }
+      }
+    }
+    // Bang explorer autocompletion on Enter
+    if (store.effectiveScope() === "bangs" && store.templateResult() === null) {
+      const bangs = store.matchingBangs();
+      const selected = bangs[store.selectedIndex()] ?? bangs[0];
+      if (selected) {
+        store.setQuery(`!${selected.matchedAlias} `);
+        store.setSelectedIndex(0);
+        searchInputRef?.focus();
+        return;
       }
     }
 
@@ -693,6 +705,20 @@ export const App: Component<AppProps> = (props) => {
               searchInputRef = el;
             }}
           />
+
+          <Show when={store.effectiveScope() === "bangs" && store.templateResult() === null}>
+            <BangList
+              items={store.matchingBangs()}
+              selectedIndex={store.selectedIndex()}
+              query={store.query()}
+              onSelectBang={(item) => {
+                store.setQuery(`!${item.matchedAlias} `);
+                store.setSelectedIndex(0);
+                searchInputRef?.focus();
+              }}
+              onHover={(idx) => store.setSelectedIndex(idx)}
+            />
+          </Show>
 
           <Show when={store.templateResult()}>
             {(tpl) => (

@@ -107,10 +107,10 @@ export interface SearchTemplateItem {
   category: string;
   urlTemplate: string;
   keywords: string[];
+  aliases?: string[];
   icon?: string;
   domain?: string;
 }
-
 export interface SearchTemplateResultItem {
   id: string;
   templateId: string;
@@ -148,7 +148,20 @@ export type KeyboardProfile = "standard" | "vim" | "emacs";
 
 export type ThemeVariant = "light" | "dark" | "oled" | "system";
 
-export type SearchScope = "all" | "window" | "tabs-only" | "groups" | "bookmarks" | "commands" | "history" | "downloads" | "closed" | "windows" | "plugins" | "templates";
+export type SearchScope =
+  | "all"
+  | "window"
+  | "tabs-only"
+  | "groups"
+  | "bookmarks"
+  | "commands"
+  | "history"
+  | "downloads"
+  | "closed"
+  | "windows"
+  | "plugins"
+  | "templates"
+  | "bangs";
 
 export interface ExtensionConfig {
   version: string;

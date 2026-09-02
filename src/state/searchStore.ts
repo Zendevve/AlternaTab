@@ -25,7 +25,12 @@ import {
 } from "../utils/search";
 import { parseQuickAction } from "../utils/search/parseActions";
 import { parsePluginQuery } from "../utils/search/plugins";
-import { getTemplate, getTemplateResult, parseBangQuery } from "../utils/search/templates";
+import {
+  findMatchingBangs,
+  getTemplate,
+  getTemplateResult,
+  parseBangQuery,
+} from "../utils/search/templates";
 import { getCalcItem, getFallbackItems, getNavigateItem, getSearchFallbackItem } from "../utils/search/fallback";
 export function createSearchStore() {
   const [query, setQuery] = createSignal("");
@@ -71,6 +76,8 @@ export function createSearchStore() {
     // Plugin prefix overrides scope
     const pq = parsePluginQuery(query());
     if (pq) return "plugins" as SearchScope;
+    // Bang explorer/discovery when query starts with "!"
+    if (query().trim().startsWith("!")) return "bangs" as SearchScope;
     return scope();
   });
 
@@ -183,6 +190,12 @@ export function createSearchStore() {
     } as import("../types/models").SearchTemplateResultItem;
   });
 
+  const matchingBangs = createMemo(() => {
+    const q = query().trim();
+    if (!q.startsWith("!")) return [];
+    return findMatchingBangs(q, customTemplates());
+  });
+
   const calcItem = createMemo(() => getCalcItem(query()));
   const navigateItem = createMemo(() => getNavigateItem(query()));
   const fallbackItem = createMemo(() => getSearchFallbackItem(query()));
@@ -210,6 +223,7 @@ export function createSearchStore() {
     if (c === "windows") return filteredWindows().length;
     if (c === "plugins") return pluginResults().length;
     if (c === "templates") return templateResult() ? 1 : 0;
+    if (c === "bangs") return matchingBangs().length;
     return filteredTabs().length;
   });
   return {
@@ -263,6 +277,7 @@ export function createSearchStore() {
     customTemplates,
     setCustomTemplates,
     templateResult,
+    matchingBangs,
     totalItemCount,
   };
 

@@ -1,8 +1,8 @@
-import { type Component, createSignal, For, onMount, Show } from "solid-js";
+import { type Component, createMemo, createSignal, For, onMount, Show } from "solid-js";
 import type { CommandPack, ExtensionConfig, KeyboardProfile, PluginItem, SearchTemplateItem, ThemeVariant } from "../types/models";
 import { sendMessage } from "../types/protocol";
+import { findMatchingBangs } from "../utils/search/templates";
 import { DEFAULT_CONFIG } from "../utils/validation";
-
 export const App: Component = () => {
   const [config, setConfig] = createSignal<ExtensionConfig>({ ...DEFAULT_CONFIG });
   const [status, setStatus] = createSignal<string>("");
@@ -19,7 +19,20 @@ export const App: Component = () => {
   const [packs, setPacks] = createSignal<CommandPack[]>([]);
   const [packJson, setPackJson] = createSignal<string>("");
   const [packStatus, setPackStatus] = createSignal<string>("");
+  const [bangSearchQuery, setBangSearchQuery] = createSignal<string>("");
+  const [bangCopyToast, setBangCopyToast] = createSignal<string>("");
 
+  const exploredBangs = createMemo(() => {
+    return findMatchingBangs(bangSearchQuery(), customTemplates(), 120);
+  });
+
+  const handleCopyBang = (alias: string) => {
+    try {
+      navigator.clipboard?.writeText(`!${alias} `);
+      setBangCopyToast(`Copied !${alias} to clipboard`);
+      setTimeout(() => setBangCopyToast(""), 2200);
+    } catch {}
+  };
   onMount(async () => {
     try {
       const stored = await sendMessage("getConfig", undefined);
@@ -467,9 +480,55 @@ export const App: Component = () => {
       </div>
 
       <div class="section">
-        <div class="section-title">Quicklinks & Search Templates (FMHY / Bangs)</div>
-        <div class="section-desc">62 bundled (!yt, !gh, !npm, !so, !mdn, !wiki, !r, !maps, !translate, !fmhy) + your !quicklinks — e.g. fmhy query → https://...?q={"{q}"}. Use <code>!yt cats</code> or <code>cats !yt</code> — custom wins on id collision. urlTemplate must contain <code>&#123;q&#125;</code>.</div>
+        <div class="section-title">Explore !Bangs & Search Templates (Helium-inspired)</div>
+        <div class="section-desc">
+          Browse and search websites to see their shortcut bangs. Type any website, keyword, or bang (e.g. Letterboxd, IMDb, Claude, YouTube, !gh). Click any badge to copy it.
+        </div>
 
+        <div class="form-group" style={{ "margin-top": "12px", "margin-bottom": "8px" }}>
+          <input
+            type="text"
+            placeholder="Search websites or bangs (e.g. letterboxd, !cgpt, imdb, wiki, steam)..."
+            value={bangSearchQuery()}
+            onInput={(e) => setBangSearchQuery(e.currentTarget.value)}
+          />
+        </div>
+
+        <div style={{ display: "flex", "align-items": "center", "justify-content": "space-between", "font-size": "11.5px", color: "var(--text-muted)", "margin-bottom": "4px" }}>
+          <span>Showing {exploredBangs().length} matching services</span>
+          <Show when={bangCopyToast()}>
+            <span style={{ color: "var(--accent)", "font-weight": "600" }}>{bangCopyToast()}</span>
+          </Show>
+        </div>
+
+        <div class="bangs-grid">
+          <For each={exploredBangs()}>
+            {(item) => (
+              <div class="bang-card">
+                <div class="bang-card-header">
+                  <span class="bang-card-title">{item.template.title}</span>
+                  <span class="bang-card-domain">{item.template.domain || "web"}</span>
+                </div>
+                <div class="bang-card-aliases">
+                  <For each={item.allAliases}>
+                    {(alias) => (
+                      <span
+                        class="bang-alias-badge"
+                        title={`Click to copy !${alias}`}
+                        onClick={() => handleCopyBang(alias)}
+                      >
+                        !{alias}
+                      </span>
+                    )}
+                  </For>
+                </div>
+              </div>
+            )}
+          </For>
+        </div>
+
+        <div class="section-title" style={{ "margin-top": "24px", "font-size": "13px" }}>Custom Templates & Overrides</div>
+        <div class="section-desc">Add your own custom bangs or override bundled defaults. Custom templates win on collision.</div>
         <div style={{ "margin-bottom": "16px" }}>
           <Show when={customTemplates().length === 0}>
             <p style={{ "font-size": "12px", color: "var(--text-muted)" }}>No custom templates yet. Add one below — e.g. id <code>mywiki</code> url <code>https://example.com/search?q=&#123;q&#125;</code></p>
