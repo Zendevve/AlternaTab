@@ -6,6 +6,7 @@ import { err, ok } from "../types/result";
 import { extractDomain } from "../utils/domain";
 import { BUILT_IN_COMMANDS, executeCommand } from "./commands";
 import { deletePlugin, getPluginByPrefix, loadPlugins, registerPlugin, runPlugin, togglePlugin } from "./plugins";
+import { addCustomTemplate, deleteCustomTemplate, getAllTemplates, loadCustomTemplates, updateCustomTemplate } from "./templates";
 import { groupTabsByDomain } from "./groups";
 import {
   activateTab,
@@ -293,5 +294,40 @@ export function registerBackgroundMessaging(): void {
 
   onMessage("runPlugin", async (message) => {
     return runPlugin(message.data.prefix, message.data.query);
+  });
+
+  onMessage("getTemplates", async () => {
+    return getAllTemplates();
+  });
+
+  onMessage("getCustomTemplates", async () => {
+    return loadCustomTemplates();
+  });
+
+  onMessage("addCustomTemplate", async (message) => {
+    try {
+      const item = await addCustomTemplate(message.data);
+      return { ok: true as const, value: item };
+    } catch (e) {
+      return err("ADD_TEMPLATE_FAILED", e instanceof Error ? e.message : String(e));
+    }
+  });
+
+  onMessage("deleteCustomTemplate", async (message) => {
+    try {
+      await deleteCustomTemplate(message.data.id);
+      return { ok: true as const, value: undefined };
+    } catch (e) {
+      return err("DELETE_TEMPLATE_FAILED", e instanceof Error ? e.message : String(e));
+    }
+  });
+
+  onMessage("updateCustomTemplate", async (message) => {
+    try {
+      const updated = await updateCustomTemplate(message.data.id, message.data.patch);
+      return { ok: true as const, value: updated };
+    } catch (e) {
+      return err("UPDATE_TEMPLATE_FAILED", e instanceof Error ? e.message : String(e));
+    }
   });
 }

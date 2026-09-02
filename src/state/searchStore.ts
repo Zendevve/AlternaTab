@@ -24,6 +24,7 @@ import {
 } from "../utils/search";
 import { parseQuickAction } from "../utils/search/parseActions";
 import { parsePluginQuery } from "../utils/search/plugins";
+import { getTemplate, getTemplateResult, parseBangQuery } from "../utils/search/templates";
 import { getCalcItem, getNavigateItem, getSearchFallbackItem } from "../utils/search/fallback";
 
 export function createSearchStore() {
@@ -39,6 +40,7 @@ export function createSearchStore() {
   const [windows, setWindows] = createSignal<WindowItem[]>([]);
   const [pluginResults, setPluginResults] = createSignal<import("../types/models").PluginResultItem[]>([]);
   const [pluginPrefix, setPluginPrefix] = createSignal<string | null>(null);
+  const [customTemplates, setCustomTemplates] = createSignal<import("../types/models").SearchTemplateItem[]>([]);
   const [selectedIndex, setSelectedIndex] = createSignal(0);
   const [activeTabId, setActiveTabId] = createSignal<number>(-1);
   const [focusedWindowId, setFocusedWindowId] = createSignal<number>(-1);
@@ -63,6 +65,9 @@ export function createSearchStore() {
     if (p.scope === "downloads") return "downloads";
     if (p.scope === "closed") return "closed";
     if (p.scope === "windows") return "windows";
+    // Bang template overrides scope (second priority after plugins)
+    const bq = parseBangQuery(query());
+    if (bq) return "templates" as SearchScope;
     // Plugin prefix overrides scope
     const pq = parsePluginQuery(query());
     if (pq) return "plugins" as SearchScope;
@@ -157,6 +162,27 @@ export function createSearchStore() {
     return searchWindows(windows(), effectiveQuery());
   });
 
+  const templateResult = createMemo(() => {
+    const parsed = parseBangQuery(query());
+    if (!parsed) return null;
+    // For custom templates, check merged map: if customTemplates contains it, use it, else use bundled via getTemplate
+    const custom = customTemplates().find((c) => c.id.toLowerCase() === parsed.templateId.toLowerCase());
+    const template = custom ?? getTemplate(parsed.templateId);
+    if (!template) return null;
+    // Need to expand with actual query from parsed
+    const url = template.urlTemplate.replace("{q}", encodeURIComponent(parsed.query));
+    let domain: string;
+    try { domain = new URL(url).hostname; } catch { domain = template.domain ?? "search"; }
+    return {
+      id: `template:${parsed.templateId}:${parsed.query}`,
+      templateId: parsed.templateId,
+      title: parsed.query ? `Search ${template.title}: ${parsed.query}` : `Search ${template.title}`,
+      url,
+      domain,
+      query: parsed.query,
+    } as import("../types/models").SearchTemplateResultItem;
+  });
+
   const calcItem = createMemo(() => getCalcItem(query()));
   const navigateItem = createMemo(() => getNavigateItem(query()));
   const fallbackItem = createMemo(() => getSearchFallbackItem(query()));
@@ -171,6 +197,7 @@ export function createSearchStore() {
     if (c === "closed") return filteredRecentlyClosed().length;
     if (c === "windows") return filteredWindows().length;
     if (c === "plugins") return pluginResults().length;
+    if (c === "templates") return templateResult() ? 1 : 0;
     return filteredTabs().length;
   });
 
@@ -220,6 +247,9 @@ export function createSearchStore() {
     setPluginResults,
     pluginPrefix,
     setPluginPrefix,
+    customTemplates,
+    setCustomTemplates,
+    templateResult,
     totalItemCount,
   };
 }

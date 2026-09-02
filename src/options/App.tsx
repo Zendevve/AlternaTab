@@ -1,5 +1,5 @@
 import { type Component, createSignal, For, onMount, Show } from "solid-js";
-import type { ExtensionConfig, KeyboardProfile, PluginItem, ThemeVariant } from "../types/models";
+import type { ExtensionConfig, KeyboardProfile, PluginItem, SearchTemplateItem, ThemeVariant } from "../types/models";
 import { sendMessage } from "../types/protocol";
 import { DEFAULT_CONFIG } from "../utils/validation";
 
@@ -10,6 +10,12 @@ export const App: Component = () => {
   const [newCode, setNewCode] = createSignal<string>("");
   const [newSourceUrl, setNewSourceUrl] = createSignal<string>("");
   const [pluginStatus, setPluginStatus] = createSignal<string>("");
+  const [customTemplates, setCustomTemplates] = createSignal<SearchTemplateItem[]>([]);
+  const [newTplId, setNewTplId] = createSignal<string>("");
+  const [newTplTitle, setNewTplTitle] = createSignal<string>("");
+  const [newTplUrl, setNewTplUrl] = createSignal<string>("");
+  const [newTplKeywords, setNewTplKeywords] = createSignal<string>("");
+  const [templateStatus, setTemplateStatus] = createSignal<string>("");
 
   onMount(async () => {
     try {
@@ -25,6 +31,12 @@ export const App: Component = () => {
       if (pls) setPlugins(pls);
     } catch {
       // plugins not available
+    }
+    try {
+      const tpl = await (sendMessage as any)("getCustomTemplates", undefined);
+      if (tpl) setCustomTemplates(tpl);
+    } catch {
+      // templates not available
     }
   });
 
@@ -68,6 +80,47 @@ export const App: Component = () => {
     try {
       const res = await sendMessage("deletePlugin", { id });
       if ((res as any).ok) await loadPlugins();
+    } catch {}
+  };
+
+  const loadCustomTemplates = async () => {
+    try {
+      const tpl = await (sendMessage as any)("getCustomTemplates", undefined);
+      if (tpl) setCustomTemplates(tpl);
+    } catch {}
+  };
+
+  const handleAddTemplate = async () => {
+    const id = newTplId().trim().toLowerCase();
+    const title = newTplTitle().trim();
+    const urlTemplate = newTplUrl().trim();
+    const keywords = newTplKeywords().split(",").map((s) => s.trim()).filter(Boolean);
+    if (!id || !title || !urlTemplate) {
+      setTemplateStatus("id, title and urlTemplate required");
+      return;
+    }
+    try {
+      const res = await sendMessage("addCustomTemplate", { id, title, category: "custom", urlTemplate, keywords } as any);
+      if ((res as any).ok) {
+        setTemplateStatus("Template added: " + (res as any).value.id);
+        setNewTplId("");
+        setNewTplTitle("");
+        setNewTplUrl("");
+        setNewTplKeywords("");
+        await loadCustomTemplates();
+        setTimeout(() => setTemplateStatus(""), 3000);
+      } else {
+        setTemplateStatus((res as any).error ?? "Failed");
+      }
+    } catch (e) {
+      setTemplateStatus(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const handleDeleteTemplate = async (id: string) => {
+    try {
+      const res = await sendMessage("deleteCustomTemplate", { id });
+      if ((res as any).ok) await loadCustomTemplates();
     } catch {}
   };
 
@@ -308,6 +361,57 @@ export const App: Component = () => {
 
         <div style={{ "margin-top": "12px", "font-size": "11px", color: "var(--text-muted)" }}>
           Registry preview: <code>src/data/plugins-registry.json</code> — 4 sample plugins (gh, npm, so, mdn). Future Phase D will fetch remote registry via <code>&gt; plugin marketplace</code>.
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Search Templates (FMHY / Bangs)</div>
+        <div class="section-desc">62 bundled engines (yt, gh, npm, so, mdn, wiki, reddit, maps, translate, fmhy, 1337x, nyaa…) + your custom !bangs. Use <code>!yt cats</code> or <code>cats !yt</code> — custom wins on id collision. urlTemplate must contain <code>&#123;q&#125;</code>.</div>
+
+        <div style={{ "margin-bottom": "16px" }}>
+          <Show when={customTemplates().length === 0}>
+            <p style={{ "font-size": "12px", color: "var(--text-muted)" }}>No custom templates yet. Add one below — e.g. id <code>mywiki</code> url <code>https://example.com/search?q=&#123;q&#125;</code></p>
+          </Show>
+          <For each={customTemplates()}>
+            {(tpl) => (
+              <div style={{ display: "flex", "align-items": "center", gap: "10px", padding: "8px 10px", border: "1px solid var(--border)", "border-radius": "6px", "margin-bottom": "8px" }}>
+                <div style={{ flex: "1" }}>
+                  <div style={{ "font-weight": "600", "font-size": "13px" }}>{tpl.title} <span style={{ color: "var(--text-muted)", "font-weight": "400" }}>!{tpl.id}</span> <span style={{ "font-size": "10px", color: "var(--text-muted)" }}>[{tpl.category}]</span></div>
+                  <div style={{ "font-size": "11px", color: "var(--text-muted)", "word-break": "break-all" }}>{tpl.urlTemplate}</div>
+                  <Show when={tpl.keywords && tpl.keywords.length > 0}>
+                    <div style={{ "font-size": "10px", color: "var(--text-muted)" }}>{tpl.keywords.join(", ")}</div>
+                  </Show>
+                </div>
+                <button type="button" class="btn btn-secondary" style={{ padding: "4px 8px", "font-size": "12px" }} onClick={() => handleDeleteTemplate(tpl.id)}>Delete</button>
+              </div>
+            )}
+          </For>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="tpl-id">Template id (bang without !) — e.g. yt, mysearch</label>
+          <input id="tpl-id" type="text" placeholder="mysearch" value={newTplId()} onInput={(e) => setNewTplId(e.currentTarget.value)} />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="tpl-title">Title — e.g. My Search</label>
+          <input id="tpl-title" type="text" placeholder="My Search" value={newTplTitle()} onInput={(e) => setNewTplTitle(e.currentTarget.value)} />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="tpl-url">urlTemplate — must contain {"{q}"}</label>
+          <input id="tpl-url" type="text" placeholder="https://example.com/search?q={q}" value={newTplUrl()} onInput={(e) => setNewTplUrl(e.currentTarget.value)} />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="tpl-keywords">Keywords (comma separated, optional)</label>
+          <input id="tpl-keywords" type="text" placeholder="example, search" value={newTplKeywords()} onInput={(e) => setNewTplKeywords(e.currentTarget.value)} />
+        </div>
+        <div class="form-group">
+          <button type="button" class="btn btn-primary" onClick={handleAddTemplate}>Add Template</button>
+          <Show when={templateStatus()}>
+            <span class="status-msg" data-show="">{templateStatus()}</span>
+          </Show>
+        </div>
+        <div style={{ "margin-top": "12px", "font-size": "11px", color: "var(--text-muted)" }}>
+          Bundled: <code>src/data/searchTemplates.json</code> — 62 engines. Custom stored in <code>chrome.storage.local[user]</code> and wins on id collision. Try <code>!yt lo-fi</code> or <code>cats !gh</code> in the palette.
         </div>
       </div>
 

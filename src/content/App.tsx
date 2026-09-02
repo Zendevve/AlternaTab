@@ -33,7 +33,7 @@ export const App: Component<AppProps> = (props) => {
 
   const loadData = async () => {
     try {
-      const [tabData, cfg, cmds, bmarks, hist, dls, closed, wins] = await Promise.all([
+      const [tabData, cfg, cmds, bmarks, hist, dls, closed, wins, customTpls] = await Promise.all([
         sendMessage("getTabs", undefined),
         sendMessage("getConfig", undefined),
         sendMessage("getCommands", undefined),
@@ -42,6 +42,7 @@ export const App: Component<AppProps> = (props) => {
         sendMessage("getDownloads", { maxResults: 100 }),
         sendMessage("getRecentlyClosed", { maxResults: 25 }),
         sendMessage("getWindows", undefined),
+        (sendMessage as any)("getCustomTemplates", undefined),
       ]);
 
       if (tabData) {
@@ -73,6 +74,9 @@ export const App: Component<AppProps> = (props) => {
       }
       if (wins) {
         store.setWindows(wins as any);
+      }
+      if (customTpls) {
+        store.setCustomTemplates(customTpls as any);
       }
     } catch {
       // Background worker might be restarting
@@ -219,6 +223,12 @@ export const App: Component<AppProps> = (props) => {
   };
 
   const handleSelect = async () => {
+    // Plugin prefix wins first (priority 1)
+    const scEarly = store.effectiveScope();
+    if (scEarly === "plugins") {
+      await openPluginItem();
+      return;
+    }
     // Quick action suffix: e.g. "github >mute" — action on selected tab without switching scope
     const pa = store.parsedAction();
     if (pa.action) {
@@ -259,11 +269,11 @@ export const App: Component<AppProps> = (props) => {
       }
     }
 
-    // Calculator: primary action copies result
-    const calc = store.calcItem();
-    if (calc) {
-      try { await navigator.clipboard?.writeText(String(calc.result)); } catch {}
+    // Template bang: priority 2 after plugins
+    const tpl = store.templateResult();
+    if (tpl) {
       closeOverlay();
+      await sendMessage("openUrl", { url: tpl.url });
       return;
     }
 
@@ -276,11 +286,15 @@ export const App: Component<AppProps> = (props) => {
       return;
     }
 
-    const sc = store.effectiveScope();
-    if (sc === "plugins") {
-      await openPluginItem();
+    // Calculator: primary action copies result
+    const calc = store.calcItem();
+    if (calc) {
+      try { await navigator.clipboard?.writeText(String(calc.result)); } catch {}
+      closeOverlay();
       return;
     }
+
+    const sc = store.effectiveScope();
     if (sc === "commands") {
       await executeCurrentCommand();
     } else if (sc === "history") {
@@ -637,6 +651,25 @@ export const App: Component<AppProps> = (props) => {
             }}
           />
 
+          <Show when={store.templateResult()}>
+            {(tpl) => (
+              <div class="at-results-list" role="listbox" aria-label="Template">
+                <div
+                  class="at-row at-selected"
+                  role="option"
+                  aria-selected="true"
+                  on:click={() => handleSelect()}
+                >
+                  <div class="at-row-icon"><span style={{ "font-size": "12px" }}>!</span></div>
+                  <div class="at-row-main">
+                    <div class="at-row-title">{tpl().title}</div>
+                    <div class="at-row-sub"><span class="at-row-domain">{tpl().domain}</span><span class="at-row-meta">Press Enter to search</span></div>
+                  </div>
+                  <div class="at-row-badges"><span class="at-badge">Template:{tpl().templateId}</span></div>
+                </div>
+              </div>
+            )}
+          </Show>
           <Show when={store.calcItem()}>
             {(calc) => (
               <div class="at-results-list" role="listbox" aria-label="Calculator">
@@ -735,7 +768,7 @@ export const App: Component<AppProps> = (props) => {
               onHover={(idx) => store.setSelectedIndex(idx)}
             />
           </Show>
-          <Show when={! ["commands", "history", "downloads", "closed", "windows", "plugins"].includes(store.effectiveScope() as string)}>
+          <Show when={! ["commands", "history", "downloads", "closed", "windows", "plugins", "templates"].includes(store.effectiveScope() as string)}>
             <TabList
               tabs={store.filteredTabs()}
               selectedIndex={store.selectedIndex()}

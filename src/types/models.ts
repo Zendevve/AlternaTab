@@ -101,6 +101,25 @@ export interface PluginResultItem {
   domain?: string;
 }
 
+export interface SearchTemplateItem {
+  id: string;
+  title: string;
+  category: string;
+  urlTemplate: string;
+  keywords: string[];
+  icon?: string;
+  domain?: string;
+}
+
+export interface SearchTemplateResultItem {
+  id: string;
+  templateId: string;
+  title: string;
+  url: string;
+  domain: string;
+  query: string;
+}
+
 export interface WindowItem {
   id: number;
   focused: boolean;
@@ -129,7 +148,7 @@ export type KeyboardProfile = "standard" | "vim" | "emacs";
 
 export type ThemeVariant = "light" | "dark" | "oled" | "system";
 
-export type SearchScope = "all" | "window" | "tabs-only" | "groups" | "bookmarks" | "commands" | "history" | "downloads" | "closed" | "windows" | "plugins";
+export type SearchScope = "all" | "window" | "tabs-only" | "groups" | "bookmarks" | "commands" | "history" | "downloads" | "closed" | "windows" | "plugins" | "templates";
 
 export interface ExtensionConfig {
   version: string;

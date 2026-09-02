@@ -8,6 +8,7 @@ import type {
   HistoryItem,
   PluginItem,
   PluginResultItem,
+  SearchTemplateItem,
   RecentlyClosedItem,
   TabFilter,
   TabGroupItem,
@@ -57,6 +58,11 @@ export interface ProtocolMap {
   deletePlugin(data: { id: string }): Result<void>;
   togglePlugin(data: { id: string; enabled: boolean }): Result<PluginItem>;
   runPlugin(data: { prefix: string; query: string }): PluginResultItem[];
+  getTemplates(): SearchTemplateItem[];
+  getCustomTemplates(): SearchTemplateItem[];
+  addCustomTemplate(data: SearchTemplateItem): Result<SearchTemplateItem>;
+  deleteCustomTemplate(data: { id: string }): Result<void>;
+  updateCustomTemplate(data: { id: string; patch: Partial<SearchTemplateItem> }): Result<SearchTemplateItem>;
 }
 
 export const { sendMessage, onMessage } = defineExtensionMessaging<ProtocolMap>();
