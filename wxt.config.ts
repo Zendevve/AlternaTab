@@ -19,7 +19,7 @@ export default defineConfig({
     description:
       "Ultra-fast, keyboard-first tab switching, search, organization, and tab lifecycle management",
     version: "1.0.0",
-    permissions: ["tabs", "storage", "sessions", "tabGroups", "commands"],
+    permissions: ["tabs", "storage", "sessions", "tabGroups", "commands", "history", "downloads", "bookmarks"],
     host_permissions: ["<all_urls>"],
     web_accessible_resources: [
       {

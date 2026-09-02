@@ -2,10 +2,14 @@ import { defineExtensionMessaging } from "@webext-core/messaging";
 import type {
   BookmarkItem,
   CommandItem,
+  DownloadItem,
   ExtensionConfig,
+  HistoryItem,
+  RecentlyClosedItem,
   TabFilter,
   TabGroupItem,
   TabItem,
+  WindowItem,
 } from "./models";
 import type { Result } from "./result";
 
@@ -35,6 +39,15 @@ export interface ProtocolMap {
   reloadAllTabs(data?: { windowId?: number }): Result<{ reloadedCount: number }>;
   getBookmarks(): BookmarkItem[];
   fetchFavicon(data: { url: string }): { dataUrl: string | null };
+  getHistory(data?: { query?: string; maxResults?: number }): HistoryItem[];
+  getDownloads(data?: { query?: string; maxResults?: number }): DownloadItem[];
+  getRecentlyClosed(data?: { maxResults?: number }): RecentlyClosedItem[];
+  getWindows(): WindowItem[];
+  deleteHistoryEntry(data: { url: string }): Result<void>;
+  openDownload(data: { downloadId: number }): Result<void>;
+  showDownloadInFolder(data: { downloadId: number }): Result<void>;
+  openUrl(data: { url: string }): Result<void>;
+  focusWindow(data: { windowId: number }): Result<void>;
 }
 
 export const { sendMessage, onMessage } = defineExtensionMessaging<ProtocolMap>();

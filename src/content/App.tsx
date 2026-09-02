@@ -1,9 +1,13 @@
 import { type Component, createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
 import { createSearchStore } from "../state/searchStore";
-import type { CommandItem, ExtensionConfig, TabItem } from "../types/models";
+import type { CommandItem, DownloadItem, ExtensionConfig, HistoryItem, RecentlyClosedItem, TabItem, WindowItem } from "../types/models";
 import { sendMessage } from "../types/protocol";
 import { DEFAULT_CONFIG } from "../utils/validation";
 import { CommandPalette } from "./components/CommandPalette";
+import { DownloadsList } from "./components/DownloadsList";
+import { HistoryList } from "./components/HistoryList";
+import { RecentlyClosedList } from "./components/RecentlyClosedList";
+import { WindowsList } from "./components/WindowsList";
 import { ContextActions, type ContextActionType } from "./components/ContextActions";
 import { SearchBar } from "./components/SearchBar";
 import { StatusBar } from "./components/StatusBar";
@@ -27,11 +31,15 @@ export const App: Component<AppProps> = (props) => {
 
   const loadData = async () => {
     try {
-      const [tabData, cfg, cmds, bmarks] = await Promise.all([
+      const [tabData, cfg, cmds, bmarks, hist, dls, closed, wins] = await Promise.all([
         sendMessage("getTabs", undefined),
         sendMessage("getConfig", undefined),
         sendMessage("getCommands", undefined),
         sendMessage("getBookmarks", undefined),
+        sendMessage("getHistory", { maxResults: 200 }),
+        sendMessage("getDownloads", { maxResults: 100 }),
+        sendMessage("getRecentlyClosed", { maxResults: 25 }),
+        sendMessage("getWindows", undefined),
       ]);
 
       if (tabData) {
@@ -51,6 +59,18 @@ export const App: Component<AppProps> = (props) => {
       }
       if (bmarks) {
         store.setBookmarks(bmarks);
+      }
+      if (hist) {
+        store.setHistory(hist as any);
+      }
+      if (dls) {
+        store.setDownloads(dls as any);
+      }
+      if (closed) {
+        store.setRecentlyClosed(closed as any);
+      }
+      if (wins) {
+        store.setWindows(wins as any);
       }
     } catch {
       // Background worker might be restarting
@@ -76,16 +96,20 @@ export const App: Component<AppProps> = (props) => {
   };
 
   const cycleScope = () => {
-    const scopes: Array<"all" | "window" | "tabs-only" | "groups" | "bookmarks" | "commands"> = [
+    const scopes: Array<"all" | "window" | "tabs-only" | "groups" | "bookmarks" | "commands" | "history" | "downloads" | "closed" | "windows"> = [
       "all",
       "window",
       "tabs-only",
       "groups",
       "bookmarks",
       "commands",
+      "history",
+      "downloads",
+      "closed",
+      "windows",
     ];
     const current = store.effectiveScope();
-    const nextIdx = (scopes.indexOf(current) + 1) % scopes.length;
+    const nextIdx = (scopes.indexOf(current as any) + 1) % scopes.length;
     store.setScope(scopes[nextIdx] ?? "all");
     store.setSelectedIndex(0);
   };
@@ -174,8 +198,17 @@ export const App: Component<AppProps> = (props) => {
   };
 
   const handleSelect = async () => {
-    if (store.effectiveScope() === "commands") {
+    const sc = store.effectiveScope();
+    if (sc === "commands") {
       await executeCurrentCommand();
+    } else if (sc === "history") {
+      await openHistoryItem();
+    } else if (sc === "downloads") {
+      await openDownloadItem();
+    } else if (sc === "closed") {
+      await restoreClosedItem();
+    } else if (sc === "windows") {
+      await focusWindowItem();
     } else {
       await activateCurrentTab();
     }
@@ -212,6 +245,42 @@ export const App: Component<AppProps> = (props) => {
     await sendMessage("togglePinTab", { tabId: tab.id });
     const refreshed = await sendMessage("getTabs", undefined);
     if (refreshed) store.setTabs(refreshed.tabs);
+  };
+
+  const openHistoryItem = async (item?: HistoryItem) => {
+    const target = item ?? store.filteredHistory()[store.selectedIndex()] as HistoryItem | undefined;
+    if (!target) return;
+    closeOverlay();
+    await sendMessage("openUrl", { url: target.url });
+  };
+
+  const openDownloadItem = async (item?: DownloadItem) => {
+    const target = item ?? store.filteredDownloads()[store.selectedIndex()] as DownloadItem | undefined;
+    if (!target) return;
+    closeOverlay();
+    await sendMessage("openDownload", { downloadId: target.id });
+  };
+
+  const restoreClosedItem = async (item?: RecentlyClosedItem) => {
+    const target = item ?? store.filteredRecentlyClosed()[store.selectedIndex()] as RecentlyClosedItem | undefined;
+    if (!target) return;
+    closeOverlay();
+    try {
+      if (typeof chrome !== "undefined" && chrome.sessions?.restore) {
+        await chrome.sessions.restore(target.sessionId);
+      } else {
+        await sendMessage("restoreClosedTab", undefined);
+      }
+    } catch {
+      await sendMessage("restoreClosedTab", undefined);
+    }
+  };
+
+  const focusWindowItem = async (item?: WindowItem) => {
+    const target = item ?? store.filteredWindows()[store.selectedIndex()] as WindowItem | undefined;
+    if (!target) return;
+    closeOverlay();
+    await sendMessage("focusWindow", { windowId: target.id });
   };
 
   const handleContextAction = async (action: ContextActionType) => {
@@ -440,28 +509,66 @@ export const App: Component<AppProps> = (props) => {
             }}
           />
 
-          <Show
-            when={store.effectiveScope() === "commands"}
-            fallback={
-              <TabList
-                tabs={store.filteredTabs()}
-                selectedIndex={store.selectedIndex()}
-                query={store.parsed().query}
-                domainColors={config().domainColors}
-                activeTabId={store.activeTabId()}
-                focusedWindowId={store.focusedWindowId()}
-                maxRenderedItems={config().maxRenderedItems}
-                onSelectTab={(tab) => activateCurrentTab(tab)}
-                onHoverTab={(idx) => store.setSelectedIndex(idx)}
-              />
-            }
-          >
+          <Show when={store.effectiveScope() === "commands"}>
             <CommandPalette
               commands={store.filteredCommands()}
               selectedIndex={store.selectedIndex()}
               query={store.parsed().query}
               onSelect={executeCurrentCommand}
               onHoverCommand={(idx) => store.setSelectedIndex(idx)}
+            />
+          </Show>
+          <Show when={store.effectiveScope() === "history"}>
+            <HistoryList
+              items={store.filteredHistory()}
+              selectedIndex={store.selectedIndex()}
+              query={store.parsed().query}
+              maxRenderedItems={config().maxRenderedItems}
+              onSelect={(item) => openHistoryItem(item)}
+              onHover={(idx) => store.setSelectedIndex(idx)}
+            />
+          </Show>
+          <Show when={store.effectiveScope() === "downloads"}>
+            <DownloadsList
+              items={store.filteredDownloads()}
+              selectedIndex={store.selectedIndex()}
+              query={store.parsed().query}
+              maxRenderedItems={config().maxRenderedItems}
+              onSelect={(item) => openDownloadItem(item)}
+              onHover={(idx) => store.setSelectedIndex(idx)}
+            />
+          </Show>
+          <Show when={store.effectiveScope() === "closed"}>
+            <RecentlyClosedList
+              items={store.filteredRecentlyClosed()}
+              selectedIndex={store.selectedIndex()}
+              query={store.parsed().query}
+              maxRenderedItems={config().maxRenderedItems}
+              onSelect={(item) => restoreClosedItem(item)}
+              onHover={(idx) => store.setSelectedIndex(idx)}
+            />
+          </Show>
+          <Show when={store.effectiveScope() === "windows"}>
+            <WindowsList
+              items={store.filteredWindows()}
+              selectedIndex={store.selectedIndex()}
+              query={store.parsed().query}
+              maxRenderedItems={config().maxRenderedItems}
+              onSelect={(item) => focusWindowItem(item)}
+              onHover={(idx) => store.setSelectedIndex(idx)}
+            />
+          </Show>
+          <Show when={! ["commands", "history", "downloads", "closed", "windows"].includes(store.effectiveScope() as string)}>
+            <TabList
+              tabs={store.filteredTabs()}
+              selectedIndex={store.selectedIndex()}
+              query={store.parsed().query}
+              domainColors={config().domainColors}
+              activeTabId={store.activeTabId()}
+              focusedWindowId={store.focusedWindowId()}
+              maxRenderedItems={config().maxRenderedItems}
+              onSelectTab={(tab) => activateCurrentTab(tab)}
+              onHoverTab={(idx) => store.setSelectedIndex(idx)}
             />
           </Show>
 

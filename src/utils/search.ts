@@ -1,8 +1,8 @@
 import uFuzzy from "@leeoniya/ufuzzy";
-import type { BookmarkItem, CommandItem, TabGroupItem, TabItem } from "../types/models";
+import type { BookmarkItem, CommandItem, DownloadItem, HistoryItem, RecentlyClosedItem, TabGroupItem, TabItem, WindowItem } from "../types/models";
 
 export type ParsedQuery = {
-  scope: "default" | "tabs" | "groups" | "bookmarks" | "commands";
+  scope: "default" | "tabs" | "groups" | "bookmarks" | "commands" | "history" | "downloads" | "closed" | "windows";
   query: string;
 };
 
@@ -22,6 +22,20 @@ export function parseQuery(input: string): ParsedQuery {
     return { scope: "default", query: "" };
   }
 
+  // Multi-char prefixes :h :d :c :w
+  if (trimmed.startsWith(":h")) {
+    return { scope: "history", query: trimmed.slice(2).trimStart() };
+  }
+  if (trimmed.startsWith(":d")) {
+    return { scope: "downloads", query: trimmed.slice(2).trimStart() };
+  }
+  if (trimmed.startsWith(":c")) {
+    return { scope: "closed", query: trimmed.slice(2).trimStart() };
+  }
+  if (trimmed.startsWith(":w")) {
+    return { scope: "windows", query: trimmed.slice(2).trimStart() };
+  }
+
   const firstChar = trimmed[0];
   if (firstChar === "@") {
     return { scope: "tabs", query: trimmed.slice(1).trimStart() };
@@ -33,6 +47,9 @@ export function parseQuery(input: string): ParsedQuery {
     return { scope: "bookmarks", query: trimmed.slice(1).trimStart() };
   }
   if (firstChar === ">") {
+    return { scope: "commands", query: trimmed.slice(1).trimStart() };
+  }
+  if (firstChar === "?" || firstChar === "/") {
     return { scope: "commands", query: trimmed.slice(1).trimStart() };
   }
 
@@ -183,4 +200,81 @@ export function searchBookmarks(bookmarks: BookmarkItem[], query: string): Bookm
   }
 
   return idxs.map((i) => bookmarks[i]).filter((b): b is BookmarkItem => b !== undefined);
+}
+
+export function searchHistory(items: HistoryItem[], query: string): HistoryItem[] {
+  if (!query || query.trim().length === 0) {
+    return items;
+  }
+  const haystack = items.map((h) => `${h.title} ${h.url} ${h.domain}`);
+  const [idxs, info, order] = uf.search(haystack, query);
+  if (!idxs || idxs.length === 0) return [];
+  if (order && info) {
+    return order
+      .map((i) => {
+        const itemIdx = info.idx[i];
+        return itemIdx !== undefined ? items[itemIdx] : undefined;
+      })
+      .filter((v): v is HistoryItem => v !== undefined);
+  }
+  return idxs.map((i) => items[i]).filter((v): v is HistoryItem => v !== undefined);
+}
+
+export function searchDownloads(items: DownloadItem[], query: string): DownloadItem[] {
+  if (!query || query.trim().length === 0) {
+    return items;
+  }
+  const haystack = items.map((d) => `${d.filename} ${d.url} ${d.domain}`);
+  const [idxs, info, order] = uf.search(haystack, query);
+  if (!idxs || idxs.length === 0) return [];
+  if (order && info) {
+    return order
+      .map((i) => {
+        const itemIdx = info.idx[i];
+        return itemIdx !== undefined ? items[itemIdx] : undefined;
+      })
+      .filter((v): v is DownloadItem => v !== undefined);
+  }
+  return idxs.map((i) => items[i]).filter((v): v is DownloadItem => v !== undefined);
+}
+
+export function searchRecentlyClosed(items: RecentlyClosedItem[], query: string): RecentlyClosedItem[] {
+  if (!query || query.trim().length === 0) {
+    return items;
+  }
+  const haystack = items.map((c) => `${c.title} ${c.url} ${c.domain}`);
+  const [idxs, info, order] = uf.search(haystack, query);
+  if (!idxs || idxs.length === 0) return [];
+  if (order && info) {
+    return order
+      .map((i) => {
+        const itemIdx = info.idx[i];
+        return itemIdx !== undefined ? items[itemIdx] : undefined;
+      })
+      .filter((v): v is RecentlyClosedItem => v !== undefined);
+  }
+  return idxs.map((i) => items[i]).filter((v): v is RecentlyClosedItem => v !== undefined);
+}
+
+export function searchWindows(items: WindowItem[], query: string): WindowItem[] {
+  if (!query || query.trim().length === 0) {
+    return items;
+  }
+  const haystack = items.map((w) => `${w.title ?? "Window " + w.id} ${w.tabCount} tabs ${w.focused ? "focused" : ""}`);
+  const [idxs, info, order] = uf.search(haystack, query);
+  if (!idxs || idxs.length === 0) return [];
+  if (order && info) {
+    return order
+      .map((i) => {
+        const itemIdx = info.idx[i];
+        return itemIdx !== undefined ? items[itemIdx] : undefined;
+      })
+      .filter((v): v is WindowItem => v !== undefined);
+  }
+  return idxs.map((i) => items[i]).filter((v): v is WindowItem => v !== undefined);
+}
+
+export function dedupHistoryWithTabs<T extends { url: string }>(history: T[], tabs: { url: string }[]): T[] {
+  const tabUrls = new Set(tabs.map((t) => t.url.toLowerCase()));
+  return history.filter((h) => !tabUrls.has(h.url.toLowerCase()));
 }

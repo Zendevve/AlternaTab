@@ -55,3 +55,21 @@ export async function mergeAllWindows(
     return err("MERGE_FAILED", e instanceof Error ? e.message : "Failed to merge windows");
   }
 }
+
+export async function getWindows(): Promise<import("../types/models").WindowItem[]> {
+  if (typeof chrome === "undefined" || !chrome.windows?.getAll) {
+    return [];
+  }
+  try {
+    const wins = await chrome.windows.getAll({ populate: true } as any);
+    return wins.map((w) => ({
+      id: w.id ?? -1,
+      focused: !!w.focused,
+      incognito: !!w.incognito,
+      tabCount: (w as any).tabs ? (((w as any).tabs as chrome.tabs.Tab[]).length) : 0,
+      title: w.id ? `Window ${w.id}` : "Window",
+    }));
+  } catch {
+    return [];
+  }
+}

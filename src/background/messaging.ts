@@ -19,7 +19,11 @@ import {
   toggleMuteTab,
   togglePinTab,
 } from "./tabs";
-import { splitTabToNewWindow } from "./windows";
+import { deleteHistoryEntry, getHistoryItems } from "./history";
+import { getDownloads, openDownload, showDownloadInFolder } from "./downloads";
+import { getRecentlyClosed } from "./recentlyClosed";
+import { getWindows, splitTabToNewWindow } from "./windows";
+import { err } from "../types/result";
 
 function collectBookmarks(nodes: chrome.bookmarks.BookmarkTreeNode[], out: BookmarkItem[]): void {
   for (const node of nodes) {
@@ -174,6 +178,81 @@ export function registerBackgroundMessaging(): void {
       return { dataUrl: null };
     } finally {
       clearTimeout(timeout);
+    }
+  });
+
+  onMessage("getHistory", async (message) => {
+    const q = message.data?.query;
+    const max = message.data?.maxResults ?? 200;
+    if (q) {
+      const { searchHistoryItems } = await import("./history");
+      return searchHistoryItems(q, max);
+    }
+    return getHistoryItems(max);
+  });
+
+  onMessage("getDownloads", async (message) => {
+    const max = message.data?.maxResults ?? 100;
+    return getDownloads(max);
+  });
+
+  onMessage("getRecentlyClosed", async (message) => {
+    const max = message.data?.maxResults ?? 25;
+    return getRecentlyClosed(max);
+  });
+
+  onMessage("getWindows", async () => {
+    return getWindows();
+  });
+
+  onMessage("deleteHistoryEntry", async (message) => {
+    try {
+      await deleteHistoryEntry(message.data.url);
+      return { ok: true as const, value: undefined };
+    } catch (e) {
+      return err("DELETE_HISTORY_FAILED", e instanceof Error ? e.message : "Failed");
+    }
+  });
+
+  onMessage("openDownload", async (message) => {
+    try {
+      await openDownload(message.data.downloadId);
+      return { ok: true as const, value: undefined };
+    } catch (e) {
+      return err("OPEN_DOWNLOAD_FAILED", e instanceof Error ? e.message : "Failed");
+    }
+  });
+
+  onMessage("showDownloadInFolder", async (message) => {
+    try {
+      await showDownloadInFolder(message.data.downloadId);
+      return { ok: true as const, value: undefined };
+    } catch (e) {
+      return err("SHOW_DOWNLOAD_FAILED", e instanceof Error ? e.message : "Failed");
+    }
+  });
+
+  onMessage("openUrl", async (message) => {
+    try {
+      if (typeof chrome !== "undefined" && chrome.tabs?.create) {
+        await chrome.tabs.create({ url: message.data.url, active: true });
+      } else if (typeof window !== "undefined" && (window as any).open) {
+        (window as any).open(message.data.url, "_blank");
+      }
+      return { ok: true as const, value: undefined };
+    } catch (e) {
+      return err("OPEN_URL_FAILED", e instanceof Error ? e.message : "Failed");
+    }
+  });
+
+  onMessage("focusWindow", async (message) => {
+    try {
+      if (typeof chrome !== "undefined" && chrome.windows?.update) {
+        await chrome.windows.update(message.data.windowId, { focused: true });
+      }
+      return { ok: true as const, value: undefined };
+    } catch (e) {
+      return err("FOCUS_WINDOW_FAILED", e instanceof Error ? e.message : "Failed");
     }
   });
 }
