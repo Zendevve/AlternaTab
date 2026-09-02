@@ -14,10 +14,10 @@ export interface KeyboardHandlers {
   onDismiss: () => void;
   onFocusSearch: () => void;
   onToggleContextActions: () => void;
+  onMruNext?: () => boolean;
   isQueryEmpty: () => boolean;
   clearQuery: () => void;
 }
-
 export function createKeyboardHandler(profile: () => KeyboardProfile, handlers: KeyboardHandlers) {
   let vimPendingG = false;
   let vimTimer: number | null = null;
@@ -47,7 +47,16 @@ export function createKeyboardHandler(profile: () => KeyboardProfile, handlers: 
     }
 
     // 3. Tab navigation: Tab to cycle scope, Shift+Tab for context actions
+    // 3. Tab navigation: Tab to cycle scope, Shift+Tab for context actions — MRU intercept first
     if (e.key === "Tab") {
+      if (!e.shiftKey && handlers.onMruNext) {
+        const handled = handlers.onMruNext();
+        if (handled) {
+          e.preventDefault();
+          e.stopPropagation();
+          return true;
+        }
+      }
       e.preventDefault();
       e.stopPropagation();
       if (e.shiftKey) {
@@ -57,7 +66,6 @@ export function createKeyboardHandler(profile: () => KeyboardProfile, handlers: 
       }
       return true;
     }
-
     // 4. When user is typing inside the search input:
     if (isTargetInput) {
       // List navigation via arrows

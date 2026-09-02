@@ -13,8 +13,10 @@ export const DEFAULT_CONFIG: ExtensionConfig = {
   maxRenderedItems: 40,
   closeOnBlur: true,
   enableVimMode: false,
+  defaultSearchEngine: "google",
+  customSearchTemplate: "",
+  enableMruCycle: false,
 };
-
 const VALID_KEYBOARD_PROFILES: Record<KeyboardProfile, true> = {
   standard: true,
   vim: true,
@@ -135,6 +137,27 @@ export function validateConfig(candidate: unknown): {
     if (resolved.enableVimMode && resolved.keyboardProfile === "standard") {
       resolved.keyboardProfile = "vim";
     }
+  }
+
+  if (typeof raw.defaultSearchEngine === "string") {
+    if (["google", "duckduckgo", "bing", "custom"].includes(raw.defaultSearchEngine)) {
+      resolved.defaultSearchEngine = raw.defaultSearchEngine as ExtensionConfig["defaultSearchEngine"];
+    } else {
+      resolved.defaultSearchEngine = "google";
+    }
+  }
+
+  if (typeof raw.customSearchTemplate === "string") {
+    const tpl = raw.customSearchTemplate.trim();
+    if (tpl === "" || tpl.includes("{q}")) {
+      resolved.customSearchTemplate = tpl;
+    } else {
+      errors.push("customSearchTemplate must contain {q}");
+    }
+  }
+
+  if (typeof raw.enableMruCycle === "boolean") {
+    resolved.enableMruCycle = raw.enableMruCycle;
   }
 
   return {

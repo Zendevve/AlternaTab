@@ -67,6 +67,12 @@ export function isBangQuery(input: string): boolean {
   return parseBangQuery(input) !== null;
 }
 
+export const isQuicklinkQuery = isBangQuery;
+
+export function listQuicklinks(): SearchTemplateItem[] {
+  return getBundledTemplates().filter((t) => t.category === "quicklink" || true);
+}
+
 export function getTemplateResult(parsed: ParsedBang): SearchTemplateResultItem {
   const url = expandTemplate(parsed.template, parsed.query);
   let domain: string;

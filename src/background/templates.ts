@@ -3,12 +3,25 @@ import { getBundledTemplates } from "../utils/search/templates";
 
 const STORAGE_KEY = "alternatab_custom_templates";
 
+const memStore: Record<string, unknown> = {};
+
 function getStorage(): chrome.storage.StorageArea {
   if (typeof chrome !== "undefined" && chrome.storage?.local) return chrome.storage.local;
   return {
-    get: async () => ({}),
-    set: async () => {},
-  } as any;
+    get: async (key?: string | string[] | Record<string, unknown>) => {
+      if (!key) return { ...memStore };
+      if (typeof key === "string") return { [key]: memStore[key] };
+      if (Array.isArray(key)) {
+        const res: Record<string, unknown> = {};
+        for (const k of key) res[k] = memStore[k];
+        return res;
+      }
+      return { ...memStore };
+    },
+    set: async (items: Record<string, unknown>) => {
+      Object.assign(memStore, items);
+    },
+  } as unknown as chrome.storage.StorageArea;
 }
 
 export async function loadCustomTemplates(): Promise<SearchTemplateItem[]> {
@@ -53,7 +66,7 @@ function validateTemplate(t: SearchTemplateItem): void {
   } catch {
     throw new Error("Invalid urlTemplate");
   }
-  if (!t.category) t.category = "custom";
+  if (!t.category) t.category = "quicklink";
   if (!Array.isArray(t.keywords)) t.keywords = [];
 }
 
@@ -66,7 +79,7 @@ export async function addCustomTemplate(item: SearchTemplateItem): Promise<Searc
   const normalized: SearchTemplateItem = {
     id: item.id.toLowerCase(),
     title: item.title.trim(),
-    category: item.category || "custom",
+    category: item.category || "quicklink",
     urlTemplate: item.urlTemplate.trim(),
     keywords: item.keywords || [],
     icon: item.icon,

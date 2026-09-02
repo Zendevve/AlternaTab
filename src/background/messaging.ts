@@ -5,6 +5,7 @@ import { onMessage } from "../types/protocol";
 import { err, ok } from "../types/result";
 import { extractDomain } from "../utils/domain";
 import { BUILT_IN_COMMANDS, executeCommand } from "./commands";
+import { deletePack, exportPack, importPack, loadPacks } from "./commandPacks";
 import { deletePlugin, getPluginByPrefix, loadPlugins, registerPlugin, runPlugin, togglePlugin } from "./plugins";
 import { addCustomTemplate, deleteCustomTemplate, getAllTemplates, loadCustomTemplates, updateCustomTemplate } from "./templates";
 import { groupTabsByDomain } from "./groups";
@@ -328,6 +329,37 @@ export function registerBackgroundMessaging(): void {
       return { ok: true as const, value: updated };
     } catch (e) {
       return err("UPDATE_TEMPLATE_FAILED", e instanceof Error ? e.message : String(e));
+    }
+  });
+
+  onMessage("getCommandPacks", async () => {
+    return loadPacks();
+  });
+
+  onMessage("importCommandPack", async (message) => {
+    try {
+      const pack = await importPack(message.data.json);
+      return { ok: true as const, value: pack };
+    } catch (e) {
+      return err("IMPORT_PACK_FAILED", e instanceof Error ? e.message : String(e));
+    }
+  });
+
+  onMessage("exportCommandPack", async (message) => {
+    try {
+      const json = await exportPack(message.data.id);
+      return { ok: true as const, value: json };
+    } catch (e) {
+      return err("EXPORT_PACK_FAILED", e instanceof Error ? e.message : String(e));
+    }
+  });
+
+  onMessage("deleteCommandPack", async (message) => {
+    try {
+      await deletePack(message.data.id);
+      return { ok: true as const, value: undefined };
+    } catch (e) {
+      return err("DELETE_PACK_FAILED", e instanceof Error ? e.message : String(e));
     }
   });
 }

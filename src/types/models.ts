@@ -163,8 +163,10 @@ export interface ExtensionConfig {
   maxRenderedItems: number;
   closeOnBlur: boolean;
   enableVimMode: boolean;
+  defaultSearchEngine: "google" | "duckduckgo" | "bing" | "custom";
+  customSearchTemplate: string;
+  enableMruCycle: boolean;
 }
-
 export type CommandId =
   | "close-duplicates"
   | "group-domain"
@@ -201,6 +203,13 @@ export interface CommandItem {
   shortcutHint?: string;
   keywords?: string[];
 }
+
+export interface CommandPack {
+  id: string;
+  title: string;
+  commands: Array<{ id: CommandId; title: string; alias: string; chain?: CommandId[] }>;
+}
+
 
 export interface TabFilter {
   windowId?: number;

@@ -1,4 +1,4 @@
-import { type Component, createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
+import { type Component, createEffect, createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { createSearchStore } from "../state/searchStore";
 import type { CommandItem, DownloadItem, ExtensionConfig, HistoryItem, RecentlyClosedItem, TabItem, WindowItem } from "../types/models";
 import { sendMessage } from "../types/protocol";
@@ -306,9 +306,10 @@ export const App: Component<AppProps> = (props) => {
     } else if (sc === "windows") {
       await focusWindowItem();
     } else {
-      // Fallback: if still no local match, use fallback search engine
+      // Fallback: if still no local match, use fallback search engine (engine-aware)
       if (!hasLocalMatch) {
-        const fb = store.fallbackItem();
+        const fbs = store.fallbackItems();
+        const fb = fbs[0] ?? store.fallbackItem();
         if (fb) {
           closeOverlay();
           await sendMessage("openUrl", { url: fb.url });
@@ -510,10 +511,20 @@ export const App: Component<AppProps> = (props) => {
     onToggleContextActions: () => {
       setShowContextActions((prev) => !prev);
     },
+    onMruNext: () => {
+      if (!config().enableMruCycle) return false;
+      if (store.effectiveScope() !== "all") return false;
+      if (showContextActions()) return false;
+      const ae = document.activeElement;
+      if (ae instanceof HTMLInputElement) return false;
+      const total = store.totalItemCount();
+      if (total <= 1) return false;
+      store.setSelectedIndex((prev) => (prev + 1) % total);
+      return true;
+    },
     isQueryEmpty: () => store.query().trim().length === 0,
     clearQuery: () => store.setQuery(""),
   });
-
   // Global listeners while overlay is visible — block wheel/scroll/touch
   // bleed-through to the host page while keeping the results list scrollable.
   createEffect(() => {
@@ -780,8 +791,49 @@ export const App: Component<AppProps> = (props) => {
               onSelectTab={(tab) => activateCurrentTab(tab)}
               onHoverTab={(idx) => store.setSelectedIndex(idx)}
             />
+            <Show when={store.effectiveScope()==="all" && store.templateResult()===null && store.navigateItem()===null && store.calcItem()===null && store.allHistoryPreview().length>0}>
+              <div class="at-results-list" style={{ "border-top": "1px solid var(--at-border)", "margin-top": "8px", "padding-top": "4px" }}>
+                <div style={{ "font-size": "11px", color: "var(--at-text-muted)", padding: "4px 10px", "font-weight": "600" }}>History · frecency-ranked</div>
+                <For each={store.allHistoryPreview()}>
+                  {(item) => (
+                    <div class="at-row" tabIndex={-1} on:click={() => { closeOverlay(); sendMessage("openUrl", { url: item.url }); }}>
+                      <div class="at-row-icon"><span style={{ "font-size": "12px" }}>🕘</span></div>
+                      <div class="at-row-main">
+                        <div class="at-row-title">{item.title}</div>
+                        <div class="at-row-sub"><span class="at-row-domain">{item.domain}</span><Show when={item.visitCount}><span class="at-row-meta">{item.visitCount} visits</span></Show></div>
+                      </div>
+                      <div class="at-row-badges"><span class="at-badge">History</span></div>
+                    </div>
+                  )}
+                </For>
+              </div>
+            </Show>
+            <Show when={store.totalItemCount()===0 && store.navigateItem()===null && store.calcItem()===null && store.templateResult()===null && store.parsed().query.trim().length>0}>
+              <div class="at-empty at-empty-actions" style={{ padding: "8px" }}>
+                <div class="at-results-list">
+                  <div class="at-row" on:click={async () => { const q = store.parsed().query.trim(); const url = q.includes("://") ? q : "https://" + q; closeOverlay(); await sendMessage("openUrl", { url }); }}>
+                    <div class="at-row-icon"><span style={{ "font-size": "12px" }}>↗</span></div>
+                    <div class="at-row-main"><div class="at-row-title">Open "{store.parsed().query}" in new tab</div><div class="at-row-sub"><span class="at-row-domain">navigate</span></div></div>
+                    <div class="at-row-badges"><span class="at-badge">Web fallback</span></div>
+                  </div>
+                  <Show when={store.fallbackItems()[0]}>
+                    {(fb) => (
+                      <div class="at-row" on:click={async () => { closeOverlay(); await sendMessage("openUrl", { url: fb().url }); }}>
+                        <div class="at-row-icon"><span style={{ "font-size": "12px" }}>🔍</span></div>
+                        <div class="at-row-main"><div class="at-row-title">{fb().title}</div><div class="at-row-sub"><span class="at-row-domain">{fb().domain}</span></div></div>
+                        <div class="at-row-badges"><span class="at-badge">Web fallback</span></div>
+                      </div>
+                    )}
+                  </Show>
+                  <div class="at-row" on:click={() => { const q = store.parsed().query.trim(); store.setQuery(":h " + q); store.setSelectedIndex(0); }}>
+                    <div class="at-row-icon"><span style={{ "font-size": "12px" }}>🕘</span></div>
+                    <div class="at-row-main"><div class="at-row-title">Search history for "{store.parsed().query}"</div><div class="at-row-sub"><span class="at-row-domain">:h {store.parsed().query}</span></div></div>
+                    <div class="at-row-badges"><span class="at-badge">Web fallback</span></div>
+                  </div>
+                </div>
+              </div>
+            </Show>
           </Show>
-
           <Show when={getSelectedTab()}>
             {(tab) => (
               <ContextActions

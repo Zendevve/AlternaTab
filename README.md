@@ -2,13 +2,14 @@
 
 > Ultra-fast, keyboard-first tab switcher, fuzzy search, and command HUD for Chromium browsers.
 
+Why not Chrome's Ctrl+Shift+A? — frecency-ranked tabs + history/bookmarks, Vim/Emacs keys, 20+ commands, no mouse, quicklinks (!yt/!gh) and web fallback.
+
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6+-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Solid.js](https://img.shields.io/badge/Solid.js-1.9+-2C4F7C?logo=solid&logoColor=white)](https://www.solidjs.com/)
 [![Manifest V3](https://img.shields.io/badge/Chrome-Manifest_V3-4285F4?logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/mv3/intro/)
 [![License: Proprietary](https://img.shields.io/badge/License-Personal_Use_Only-orange.svg)](#license)
 
 AlternaTab NextGen replaces slow, mouse-bound tab browsing with a high-performance, command-driven HUD that opens with a single keystroke. Search across hundreds of tabs, manage windows, deduplicate tabs, suspend idle memory, and execute browser commands without leaving the keyboard.
-
 ---
 
 ## Highlights

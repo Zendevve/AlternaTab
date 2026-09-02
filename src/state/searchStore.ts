@@ -1,4 +1,5 @@
 import { createMemo, createSignal } from "solid-js";
+import { configStore } from "./configStore";
 import type {
   BookmarkItem,
   CommandItem,
@@ -25,8 +26,7 @@ import {
 import { parseQuickAction } from "../utils/search/parseActions";
 import { parsePluginQuery } from "../utils/search/plugins";
 import { getTemplate, getTemplateResult, parseBangQuery } from "../utils/search/templates";
-import { getCalcItem, getNavigateItem, getSearchFallbackItem } from "../utils/search/fallback";
-
+import { getCalcItem, getFallbackItems, getNavigateItem, getSearchFallbackItem } from "../utils/search/fallback";
 export function createSearchStore() {
   const [query, setQuery] = createSignal("");
   const [scope, setScope] = createSignal<SearchScope>("all");
@@ -186,6 +186,18 @@ export function createSearchStore() {
   const calcItem = createMemo(() => getCalcItem(query()));
   const navigateItem = createMemo(() => getNavigateItem(query()));
   const fallbackItem = createMemo(() => getSearchFallbackItem(query()));
+  const fallbackItems = createMemo(() => {
+    const cfg = configStore.get();
+    return getFallbackItems(query(), cfg.defaultSearchEngine, cfg.customSearchTemplate);
+  });
+
+  const allHistoryPreview = createMemo(() => {
+    if (effectiveScope() !== "all") return [];
+    const q = parsed().query;
+    if (q.length < 2) return [];
+    if (filteredTabs().length >= 40) return [];
+    return filteredHistory().slice(0, 3);
+  });
 
   const totalItemCount = createMemo(() => {
     const c = effectiveScope();
@@ -200,7 +212,6 @@ export function createSearchStore() {
     if (c === "templates") return templateResult() ? 1 : 0;
     return filteredTabs().length;
   });
-
   return {
     query,
     setQuery,
@@ -241,6 +252,8 @@ export function createSearchStore() {
     calcItem,
     navigateItem,
     fallbackItem,
+    fallbackItems,
+    allHistoryPreview,
     parsedAction,
     effectiveQuery,
     pluginResults,
@@ -252,4 +265,5 @@ export function createSearchStore() {
     templateResult,
     totalItemCount,
   };
+
 }

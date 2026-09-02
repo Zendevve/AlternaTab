@@ -21,7 +21,7 @@ export const HistoryList: Component<HistoryListProps> = (props) => {
   });
   const displayed = () => props.items.slice(0, props.maxRenderedItems);
   return (
-    <Show when={displayed().length > 0} fallback={<EmptyState title="No matching history" description="Try a different query or clear :h" />}>
+    <Show when={displayed().length > 0} fallback={<EmptyState title="No matching history" description={`No history matching "${props.query}" — try :h ${props.query} with quotes "exact" or check !bangs`} />}>
       <div class="at-results-list" role="listbox" aria-label="History">
         <For each={displayed()}>
           {(item, idx) => {

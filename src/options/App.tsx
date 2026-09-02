@@ -1,5 +1,5 @@
 import { type Component, createSignal, For, onMount, Show } from "solid-js";
-import type { ExtensionConfig, KeyboardProfile, PluginItem, SearchTemplateItem, ThemeVariant } from "../types/models";
+import type { CommandPack, ExtensionConfig, KeyboardProfile, PluginItem, SearchTemplateItem, ThemeVariant } from "../types/models";
 import { sendMessage } from "../types/protocol";
 import { DEFAULT_CONFIG } from "../utils/validation";
 
@@ -16,6 +16,9 @@ export const App: Component = () => {
   const [newTplUrl, setNewTplUrl] = createSignal<string>("");
   const [newTplKeywords, setNewTplKeywords] = createSignal<string>("");
   const [templateStatus, setTemplateStatus] = createSignal<string>("");
+  const [packs, setPacks] = createSignal<CommandPack[]>([]);
+  const [packJson, setPackJson] = createSignal<string>("");
+  const [packStatus, setPackStatus] = createSignal<string>("");
 
   onMount(async () => {
     try {
@@ -37,6 +40,12 @@ export const App: Component = () => {
       if (tpl) setCustomTemplates(tpl);
     } catch {
       // templates not available
+    }
+    try {
+      const ps = await (sendMessage as any)("getCommandPacks", undefined);
+      if (ps) setPacks(ps);
+    } catch {
+      // packs not available
     }
   });
 
@@ -100,9 +109,9 @@ export const App: Component = () => {
       return;
     }
     try {
-      const res = await sendMessage("addCustomTemplate", { id, title, category: "custom", urlTemplate, keywords } as any);
-      if ((res as any).ok) {
-        setTemplateStatus("Template added: " + (res as any).value.id);
+      const res = await sendMessage("addCustomTemplate", { id, title, category: "quicklink", urlTemplate, keywords } as unknown as SearchTemplateItem);
+      if ((res as unknown as { ok: boolean; value?: SearchTemplateItem; error?: string }).ok) {
+        setTemplateStatus("Template added: " + ((res as unknown as { value: SearchTemplateItem }).value.id));
         setNewTplId("");
         setNewTplTitle("");
         setNewTplUrl("");
@@ -110,7 +119,7 @@ export const App: Component = () => {
         await loadCustomTemplates();
         setTimeout(() => setTemplateStatus(""), 3000);
       } else {
-        setTemplateStatus((res as any).error ?? "Failed");
+        setTemplateStatus(((res as unknown as { error?: string }).error) ?? "Failed");
       }
     } catch (e) {
       setTemplateStatus(e instanceof Error ? e.message : String(e));
@@ -120,7 +129,52 @@ export const App: Component = () => {
   const handleDeleteTemplate = async (id: string) => {
     try {
       const res = await sendMessage("deleteCustomTemplate", { id });
-      if ((res as any).ok) await loadCustomTemplates();
+      if ((res as unknown as { ok: boolean }).ok) await loadCustomTemplates();
+    } catch {}
+  };
+
+  const loadPacks = async () => {
+    try {
+      const ps = await (sendMessage as unknown as (type: string, data: unknown) => Promise<CommandPack[]>)("getCommandPacks", undefined);
+      if (ps) setPacks(ps);
+    } catch {}
+  };
+
+  const handleImportPack = async () => {
+    const json = packJson().trim();
+    if (!json) { setPackStatus("JSON required"); return; }
+    try {
+      const res = await sendMessage("importCommandPack", { json });
+      if ((res as unknown as { ok: boolean; value?: CommandPack; error?: string }).ok) {
+        setPackStatus("Pack imported: " + ((res as unknown as { value: CommandPack }).value.id));
+        setPackJson("");
+        await loadPacks();
+        setTimeout(() => setPackStatus(""), 3000);
+      } else {
+        setPackStatus(((res as unknown as { error?: string }).error) ?? "Failed");
+      }
+    } catch (e) {
+      setPackStatus(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const handleExportPack = async (id: string) => {
+    try {
+      const res = await sendMessage("exportCommandPack", { id });
+      if ((res as unknown as { ok: boolean; value?: string }).ok) {
+        setPackJson(((res as unknown as { value: string }).value));
+        setPackStatus("Exported " + id);
+        setTimeout(() => setPackStatus(""), 3000);
+      }
+    } catch (e) {
+      setPackStatus(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const handleDeletePack = async (id: string) => {
+    try {
+      const res = await sendMessage("deleteCommandPack", { id });
+      if ((res as unknown as { ok: boolean }).ok) await loadPacks();
     } catch {}
   };
 
@@ -232,8 +286,21 @@ export const App: Component = () => {
             title="Configure global shortcuts in chrome://extensions/shortcuts"
           />
         </div>
-      </div>
 
+        <div class="form-group">
+          <label class="form-label" for="mru-cycle">
+            Enable MRU Tab cycle (Tab to cycle while HUD open)
+          </label>
+          <input
+            id="mru-cycle"
+            type="checkbox"
+            checked={config().enableMruCycle}
+            onChange={(e) =>
+              setConfig((prev) => ({ ...prev, enableMruCycle: e.currentTarget.checked }))
+            }
+          />
+        </div>
+      </div>
       <div class="section">
         <div class="section-title">Search & Performance</div>
         <div class="section-desc">Tuning ranking weights and rendering thresholds</div>
@@ -292,6 +359,41 @@ export const App: Component = () => {
             }
           />
         </div>
+
+        <div class="form-group">
+          <label class="form-label" for="engine-select">
+            Default search engine
+          </label>
+          <select
+            id="engine-select"
+            value={config().defaultSearchEngine}
+            onChange={(e) =>
+              setConfig((prev) => ({ ...prev, defaultSearchEngine: e.currentTarget.value as ExtensionConfig["defaultSearchEngine"] }))
+            }
+          >
+            <option value="google">Google</option>
+            <option value="duckduckgo">DuckDuckGo</option>
+            <option value="bing">Bing</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+
+        <Show when={config().defaultSearchEngine === "custom"}>
+          <div class="form-group">
+            <label class="form-label" for="custom-template-input">
+              Custom search template (must contain {"{q}"})
+            </label>
+            <input
+              id="custom-template-input"
+              type="text"
+              placeholder="https://example.com/search?q={q}"
+              value={config().customSearchTemplate}
+              onInput={(e) =>
+                setConfig((prev) => ({ ...prev, customSearchTemplate: e.currentTarget.value }))
+              }
+            />
+          </div>
+        </Show>
 
         <div class="form-group">
           <label class="form-label" for="blur-dismiss">
@@ -365,8 +467,8 @@ export const App: Component = () => {
       </div>
 
       <div class="section">
-        <div class="section-title">Search Templates (FMHY / Bangs)</div>
-        <div class="section-desc">62 bundled engines (yt, gh, npm, so, mdn, wiki, reddit, maps, translate, fmhy, 1337x, nyaa…) + your custom !bangs. Use <code>!yt cats</code> or <code>cats !yt</code> — custom wins on id collision. urlTemplate must contain <code>&#123;q&#125;</code>.</div>
+        <div class="section-title">Quicklinks & Search Templates (FMHY / Bangs)</div>
+        <div class="section-desc">62 bundled (!yt, !gh, !npm, !so, !mdn, !wiki, !r, !maps, !translate, !fmhy) + your !quicklinks — e.g. fmhy query → https://...?q={"{q}"}. Use <code>!yt cats</code> or <code>cats !yt</code> — custom wins on id collision. urlTemplate must contain <code>&#123;q&#125;</code>.</div>
 
         <div style={{ "margin-bottom": "16px" }}>
           <Show when={customTemplates().length === 0}>
@@ -386,8 +488,8 @@ export const App: Component = () => {
               </div>
             )}
           </For>
+          <div style={{ "margin-top": "8px", "font-size": "11px", color: "var(--text-muted)" }}>Tip: add a quicklink id "fmhy" with urlTemplate "https://fmhy.net/search?q={"{q}"}" to recreate FMHY Search.</div>
         </div>
-
         <div class="form-group">
           <label class="form-label" for="tpl-id">Template id (bang without !) — e.g. yt, mysearch</label>
           <input id="tpl-id" type="text" placeholder="mysearch" value={newTplId()} onInput={(e) => setNewTplId(e.currentTarget.value)} />
@@ -412,6 +514,38 @@ export const App: Component = () => {
         </div>
         <div style={{ "margin-top": "12px", "font-size": "11px", color: "var(--text-muted)" }}>
           Bundled: <code>src/data/searchTemplates.json</code> — 62 engines. Custom stored in <code>chrome.storage.local[user]</code> and wins on id collision. Try <code>!yt lo-fi</code> or <code>cats !gh</code> in the palette.
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Command Packs (Shareable)</div>
+        <div class="section-desc">Declarative JSON packs for aliases and chained commands — share via gist.</div>
+        <div style={{ "margin-bottom": "16px" }}>
+          <Show when={packs().length === 0}>
+            <p style={{ "font-size": "12px", color: "var(--text-muted)" }}>No packs installed. Paste JSON below to import.</p>
+          </Show>
+          <For each={packs()}>
+            {(pack) => (
+              <div style={{ display: "flex", "align-items": "center", gap: "10px", padding: "8px 10px", border: "1px solid var(--border)", "border-radius": "6px", "margin-bottom": "8px" }}>
+                <div style={{ flex: "1" }}>
+                  <div style={{ "font-weight": "600", "font-size": "13px" }}>{pack.title} <span style={{ color: "var(--text-muted)", "font-weight": "400" }}>({pack.id})</span></div>
+                  <div style={{ "font-size": "11px", color: "var(--text-muted)" }}>{pack.commands.map((c) => c.alias).join(", ")}</div>
+                </div>
+                <button type="button" class="btn btn-secondary" style={{ padding: "4px 8px", "font-size": "12px" }} onClick={() => handleExportPack(pack.id)}>Export</button>
+                <button type="button" class="btn btn-secondary" style={{ padding: "4px 8px", "font-size": "12px" }} onClick={() => handleDeletePack(pack.id)}>Delete</button>
+              </div>
+            )}
+          </For>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="pack-json">Pack JSON</label>
+          <textarea id="pack-json" placeholder={`{"id":"cleanup","title":"Cleanup","commands":[{"id":"close-duplicates","title":"Close Dupes","alias":"cleanup","chain":["close-duplicates","suspend-inactive","sort-domain"]}]}`} value={packJson()} onInput={(e) => setPackJson(e.currentTarget.value)} style={{ width: "100%", "min-height": "100px", "font-family": "monospace", "font-size": "12px", padding: "8px", "border-radius": "6px", border: "1px solid var(--border)" }} />
+        </div>
+        <div class="form-group">
+          <button type="button" class="btn btn-primary" onClick={handleImportPack}>Import Pack</button>
+          <Show when={packStatus()}>
+            <span class="status-msg" data-show="">{packStatus()}</span>
+          </Show>
         </div>
       </div>
 

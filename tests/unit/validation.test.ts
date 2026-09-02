@@ -56,4 +56,28 @@ describe("validateConfig", () => {
     expect(res.config.domainColors["github.com"]).toBe("#123456");
     expect(res.config.domainColors["bad.com"]).toBeUndefined();
   });
+
+  it("validates defaultSearchEngine and customSearchTemplate", () => {
+    const validEngine = validateConfig({ defaultSearchEngine: "duckduckgo" });
+    expect(validEngine.valid).toBe(true);
+    expect(validEngine.config.defaultSearchEngine).toBe("duckduckgo");
+
+    const invalidEngine = validateConfig({ defaultSearchEngine: "unknown-engine" });
+    expect(invalidEngine.valid).toBe(true);
+    expect(invalidEngine.config.defaultSearchEngine).toBe("google");
+
+    const validCustom = validateConfig({ defaultSearchEngine: "custom", customSearchTemplate: "https://kagi.com/search?q={q}" });
+    expect(validCustom.valid).toBe(true);
+    expect(validCustom.config.customSearchTemplate).toBe("https://kagi.com/search?q={q}");
+
+    const invalidCustom = validateConfig({ customSearchTemplate: "https://kagi.com/search?no-placeholder=1" });
+    expect(invalidCustom.valid).toBe(false);
+    expect(invalidCustom.errors[0]).toContain("{q}");
+  });
+
+  it("validates enableMruCycle", () => {
+    const res = validateConfig({ enableMruCycle: true });
+    expect(res.valid).toBe(true);
+    expect(res.config.enableMruCycle).toBe(true);
+  });
 });

@@ -3,6 +3,7 @@ import type {
   BookmarkItem,
   CommandId,
   CommandItem,
+  CommandPack,
   DownloadItem,
   ExtensionConfig,
   HistoryItem,
@@ -63,6 +64,9 @@ export interface ProtocolMap {
   addCustomTemplate(data: SearchTemplateItem): Result<SearchTemplateItem>;
   deleteCustomTemplate(data: { id: string }): Result<void>;
   updateCustomTemplate(data: { id: string; patch: Partial<SearchTemplateItem> }): Result<SearchTemplateItem>;
+  getCommandPacks(): CommandPack[];
+  importCommandPack(data: { json: string }): Result<CommandPack>;
+  exportCommandPack(data: { id: string }): Result<string>;
+  deleteCommandPack(data: { id: string }): Result<void>;
 }
-
 export const { sendMessage, onMessage } = defineExtensionMessaging<ProtocolMap>();

@@ -59,3 +59,40 @@ export function getSearchFallbackItem(query: string): NavigateItem | null {
     domain: "google.com",
   };
 }
+
+export function getEngineTemplate(engine: string, custom: string): string {
+  switch (engine) {
+    case "duckduckgo":
+      return "https://duckduckgo.com/?q={q}";
+    case "bing":
+      return "https://www.bing.com/search?q={q}";
+    case "custom":
+      if (custom && custom.includes("{q}")) {
+        try { new URL(custom.replace("{q}", "test")); return custom; } catch { return "https://www.google.com/search?q={q}"; }
+      }
+      return "https://www.google.com/search?q={q}";
+    case "google":
+    default:
+      return "https://www.google.com/search?q={q}";
+  }
+}
+
+export function getFallbackItems(query: string, engine: string = "google", custom: string = ""): NavigateItem[] {
+  if (!query?.trim()) return [];
+  if (isUrlLike(query) || isCalcQuery(query)) return [];
+  const template = getEngineTemplate(engine, custom);
+  const url = toSearchEngineUrl(query, template);
+  let domain: string;
+  try { domain = new URL(url).hostname; } catch { domain = "search"; }
+  const engineLabel = engine === "duckduckgo" ? "DuckDuckGo" : engine === "bing" ? "Bing" : engine === "custom" ? "Custom" : "Google";
+  const items: NavigateItem[] = [
+    {
+      id: `search:${engine}:${query}`,
+      url,
+      title: `Search ${engineLabel}: ${query}`,
+      domain,
+    },
+  ];
+  // optional history search item is handled in UI via dispatch; keep only engine item here
+  return items;
+}
