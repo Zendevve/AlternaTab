@@ -14,6 +14,7 @@ interface ContextActionsProps {
   selectedIndex: number;
   onExecute: (action: ContextActionType) => void;
   onHover?: (index: number) => void;
+  open?: boolean;
 }
 
 export const ContextActions: Component<ContextActionsProps> = (props) => {
@@ -51,29 +52,36 @@ export const ContextActions: Component<ContextActionsProps> = (props) => {
   ];
 
   return (
-    <div class="at-context-actions" role="menu" aria-label="Tab Actions">
-      <div class="at-context-title">Actions for {props.tab.title}</div>
-      <For each={actions()}>
-        {(act, idx) => {
-          const isSelected = () => idx() === props.selectedIndex;
-          return (
-            <div
-              class={`at-action-item ${isSelected() ? "at-selected" : ""}`}
-              on:click={(e: MouseEvent) => {
-                e.preventDefault();
-                e.stopPropagation();
-                props.onExecute(act.type);
-              }}
-              on:mouseenter={() => props.onHover?.(idx())}
-              role="menuitem"
-              tabIndex={isSelected() ? 0 : -1}
-            >
-              <span>{act.label}</span>
-              <kbd class="at-kbd">{act.hint}</kbd>
-            </div>
-          );
-        }}
-      </For>
+    <div
+      class="at-context-actions"
+      role="menu"
+      aria-label="Tab Actions"
+      data-open={props.open ? "" : undefined}
+    >
+      <div class="at-context-actions-inner">
+        <div class="at-context-title">Actions for {props.tab.title}</div>
+        <For each={actions()}>
+          {(act, idx) => {
+            const isSelected = () => idx() === props.selectedIndex;
+            return (
+              <div
+                class={`at-action-item ${isSelected() ? "at-selected" : ""}`}
+                on:click={(e: MouseEvent) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  props.onExecute(act.type);
+                }}
+                on:mouseenter={() => props.onHover?.(idx())}
+                role="menuitem"
+                tabIndex={isSelected() ? 0 : -1}
+              >
+                <span>{act.label}</span>
+                <kbd class="at-kbd">{act.hint}</kbd>
+              </div>
+            );
+          }}
+        </For>
+      </div>
     </div>
   );
 };

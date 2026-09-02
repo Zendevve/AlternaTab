@@ -465,13 +465,14 @@ export const App: Component<AppProps> = (props) => {
             />
           </Show>
 
-          <Show when={showContextActions() && getSelectedTab()}>
+          <Show when={getSelectedTab()}>
             {(tab) => (
               <ContextActions
                 tab={tab()}
                 selectedIndex={contextActionIndex()}
                 onExecute={handleContextAction}
                 onHover={(idx) => setContextActionIndex(idx)}
+                open={showContextActions()}
               />
             )}
           </Show>

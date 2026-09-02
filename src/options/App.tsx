@@ -1,4 +1,4 @@
-import { type Component, createSignal, onMount, Show } from "solid-js";
+import { type Component, createSignal, onMount } from "solid-js";
 import type { ExtensionConfig, KeyboardProfile, ThemeVariant } from "../types/models";
 import { sendMessage } from "../types/protocol";
 import { DEFAULT_CONFIG } from "../utils/validation";
@@ -209,9 +209,9 @@ export const App: Component = () => {
         <button type="button" class="btn btn-secondary" onClick={reset}>
           Reset to Defaults
         </button>
-        <Show when={status().length > 0}>
-          <span class="status-msg">{status()}</span>
-        </Show>
+        <span class="status-msg" data-show={status().length > 0 ? "" : undefined}>
+          {status()}
+        </span>
       </div>
     </div>
   );

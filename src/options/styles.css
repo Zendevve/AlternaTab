@@ -296,6 +296,29 @@ input[type="checkbox"]:focus-visible {
   margin-left: 12px;
   letter-spacing: -0.005em;
   font-variant-numeric: tabular-nums;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 160ms cubic-bezier(0.16, 1, 0.3, 1), transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+}
+.status-msg:not([data-show]) {
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity 140ms cubic-bezier(0.16, 1, 0.3, 1), transform 140ms cubic-bezier(0.16, 1, 0.3, 1), visibility 0s linear 140ms;
+}
+@starting-style {
+  .status-msg[data-show] {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .status-msg, .status-msg:not([data-show]) {
+    transform: none;
+    transition: opacity 80ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
 }
 
 .actions-row {
