@@ -71,18 +71,51 @@ export function registerBackgroundEvents(): void {
   if (chrome.commands) {
     chrome.commands.onCommand.addListener(async (command) => {
       if (command === "toggle-overlay") {
+        let activeTab: chrome.tabs.Tab | undefined;
         try {
-          const [activeTab] = await chrome.tabs.query({
+          const [tab] = await chrome.tabs.query({
             active: true,
             lastFocusedWindow: true,
           });
-          if (activeTab?.id) {
+          activeTab = tab;
+        } catch {
+          // Tab query error
+        }
+
+        const isRestricted =
+          !activeTab?.url ||
+          activeTab.url.startsWith("chrome://") ||
+          activeTab.url.startsWith("chrome-extension://") ||
+          activeTab.url.startsWith("https://chromewebstore.google.com") ||
+          activeTab.url.startsWith("view-source:");
+
+        if (!isRestricted && activeTab?.id) {
+          try {
             await chrome.tabs.sendMessage(activeTab.id, {
               type: "TOGGLE_ALTERNATAB_OVERLAY",
             });
+            return;
+          } catch {
+            // Message failed, fall through to fallback HUD
+          }
+        }
+
+        // Fallback: open popup or HUD options tab
+        try {
+          if (typeof chrome.action?.openPopup === "function") {
+            await chrome.action.openPopup();
+            return;
           }
         } catch {
-          // Send message failure on restricted or unloaded page
+          // openPopup not supported or unavailable
+        }
+
+        try {
+          await chrome.tabs.create({
+            url: chrome.runtime.getURL("options.html?mode=hud"),
+          });
+        } catch {
+          // Standalone HUD creation error handled
         }
       }
     });

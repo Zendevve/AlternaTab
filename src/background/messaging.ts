@@ -6,6 +6,7 @@ import { err, ok } from "../types/result";
 import { extractDomain } from "../utils/domain";
 import { BUILT_IN_COMMANDS, executeCommand } from "./commands";
 import { deletePack, exportPack, importPack, loadPacks } from "./commandPacks";
+import { deleteWorkspace, loadWorkspaces, restoreWorkspace, saveWorkspace } from "./storage";
 import { deletePlugin, getPluginByPrefix, loadPlugins, registerPlugin, runPlugin, togglePlugin } from "./plugins";
 import { addCustomTemplate, deleteCustomTemplate, getAllTemplates, loadCustomTemplates, updateCustomTemplate } from "./templates";
 import { groupTabsByDomain } from "./groups";
@@ -16,6 +17,8 @@ import {
   discardTabs,
   duplicateTab,
   exportSessionJson,
+  groupTabs,
+  moveTabsToNewWindow,
   reloadAllTabs,
   restoreClosedTab,
   suspendInactiveTabs,
@@ -85,10 +88,17 @@ export function registerBackgroundMessaging(): void {
     return splitTabToNewWindow(message.data.tabId);
   });
 
+  onMessage("moveTabsToNewWindow", async (message) => {
+    return moveTabsToNewWindow(message.data.tabIds);
+  });
+
+  onMessage("groupTabs", async (message) => {
+    return groupTabs(message.data.tabIds, message.data.title, message.data.color);
+  });
+
   onMessage("groupTabsByDomain", async (message) => {
     return groupTabsByDomain(message.data.windowId);
   });
-
   onMessage("deduplicateTabs", async (message) => {
     return deduplicateTabs(message.data.windowId);
   });
@@ -360,6 +370,36 @@ export function registerBackgroundMessaging(): void {
       return { ok: true as const, value: undefined };
     } catch (e) {
       return err("DELETE_PACK_FAILED", e instanceof Error ? e.message : String(e));
+    }
+  });
+  onMessage("getWorkspaces", async () => {
+    return loadWorkspaces();
+  });
+
+  onMessage("saveWorkspace", async (message) => {
+    try {
+      const item = await saveWorkspace(message.data.name, message.data.windowId);
+      return { ok: true as const, value: item };
+    } catch (e) {
+      return err("SAVE_WORKSPACE_FAILED", e instanceof Error ? e.message : String(e));
+    }
+  });
+
+  onMessage("deleteWorkspace", async (message) => {
+    try {
+      await deleteWorkspace(message.data.id);
+      return { ok: true as const, value: undefined };
+    } catch (e) {
+      return err("DELETE_WORKSPACE_FAILED", e instanceof Error ? e.message : String(e));
+    }
+  });
+
+  onMessage("restoreWorkspace", async (message) => {
+    try {
+      const res = await restoreWorkspace(message.data.id, message.data.newWindow);
+      return { ok: true as const, value: res };
+    } catch (e) {
+      return err("RESTORE_WORKSPACE_FAILED", e instanceof Error ? e.message : String(e));
     }
   });
 }

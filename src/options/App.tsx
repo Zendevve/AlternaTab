@@ -1,9 +1,24 @@
+import { App as ContentOverlay } from "../content/App";
 import { type Component, createMemo, createSignal, For, onMount, Show } from "solid-js";
 import type { CommandPack, ExtensionConfig, KeyboardProfile, PluginItem, SearchTemplateItem, ThemeVariant } from "../types/models";
 import { sendMessage } from "../types/protocol";
 import { findMatchingBangs } from "../utils/search/templates";
 import { DEFAULT_CONFIG } from "../utils/validation";
 export const App: Component = () => {
+  const isHudMode = () => {
+    if (typeof window === "undefined") return false;
+    const params = new URLSearchParams(window.location.search);
+    return params.get("mode") === "hud";
+  };
+
+  if (isHudMode()) {
+    return (
+      <div style={{ width: "100vw", height: "100vh", background: "transparent", margin: 0, padding: 0 }}>
+        <ContentOverlay initialVisible={true} onClose={() => window.close()} />
+      </div>
+    );
+  }
+
   const [config, setConfig] = createSignal<ExtensionConfig>({ ...DEFAULT_CONFIG });
   const [status, setStatus] = createSignal<string>("");
   const [plugins, setPlugins] = createSignal<PluginItem[]>([]);

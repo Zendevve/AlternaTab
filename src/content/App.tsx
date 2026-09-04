@@ -1,6 +1,6 @@
 import { type Component, createEffect, createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { createSearchStore } from "../state/searchStore";
-import type { CommandItem, DownloadItem, ExtensionConfig, HistoryItem, RecentlyClosedItem, TabItem, WindowItem } from "../types/models";
+import type { CommandItem, DownloadItem, ExtensionConfig, HistoryItem, RecentlyClosedItem, TabItem, WindowItem, WorkspaceItem } from "../types/models";
 import { sendMessage } from "../types/protocol";
 import { parsePluginQuery } from "../utils/search/plugins";
 import { DEFAULT_CONFIG } from "../utils/validation";
@@ -11,6 +11,7 @@ import { HistoryList } from "./components/HistoryList";
 import { PluginList } from "./components/PluginList";
 import { RecentlyClosedList } from "./components/RecentlyClosedList";
 import { WindowsList } from "./components/WindowsList";
+import { WorkspacesList } from "./components/WorkspacesList";
 import { ContextActions, type ContextActionType } from "./components/ContextActions";
 import { SearchBar } from "./components/SearchBar";
 import { StatusBar } from "./components/StatusBar";
@@ -30,11 +31,126 @@ export const App: Component<AppProps> = (props) => {
 
   let searchInputRef: HTMLInputElement | undefined;
 
+  const [leavingTabIds, setLeavingTabIds] = createSignal<Set<number>>(new Set());
+  const [stagedTabIds, setStagedTabIds] = createSignal<Set<number>>(new Set());
+  const [statusNotification, setStatusNotification] = createSignal<string>("");
+  let statusTimer: number | undefined;
+
+  const showStatus = (msg: string, durationMs = 2500) => {
+    setStatusNotification(msg);
+    clearTimeout(statusTimer);
+    statusTimer = window.setTimeout(() => setStatusNotification(""), durationMs);
+  };
+
+  const toggleStageTab = (tabId: number) => {
+    setStagedTabIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(tabId)) next.delete(tabId);
+      else next.add(tabId);
+      return next;
+    });
+  };
+
+  const clearStagedTabs = (): boolean => {
+    if (stagedTabIds().size > 0) {
+      setStagedTabIds(new Set<number>());
+      return true;
+    }
+    return false;
+  };
+
+  const toggleStageCurrent = () => {
+    const tab = getSelectedTab();
+    if (tab) toggleStageTab(tab.id);
+  };
+
+  const executeBatchClose = async () => {
+    const ids = Array.from(stagedTabIds());
+    if (ids.length === 0) return;
+    setLeavingTabIds((prev) => {
+      const next = new Set(prev);
+      for (const id of ids) next.add(id);
+      return next;
+    });
+    setStagedTabIds(new Set<number>());
+    await sendMessage("closeTabs", { tabIds: ids });
+    const refreshed = await sendMessage("getTabs", undefined);
+    if (refreshed) store.setTabs(refreshed.tabs);
+    setLeavingTabIds((prev) => {
+      const next = new Set(prev);
+      for (const id of ids) next.delete(id);
+      return next;
+    });
+  };
+
+  const executeBatchMove = async () => {
+    const ids = Array.from(stagedTabIds());
+    if (ids.length === 0) return;
+    clearStagedTabs();
+    closeOverlay();
+    await sendMessage("moveTabsToNewWindow", { tabIds: ids });
+  };
+
+  const executeBatchSuspend = async () => {
+    const ids = Array.from(stagedTabIds());
+    if (ids.length === 0) return;
+    clearStagedTabs();
+    await sendMessage("discardTabs", { tabIds: ids });
+    showStatus(`Suspended ${ids.length} ${ids.length === 1 ? "tab" : "tabs"}`);
+    const refreshed = await sendMessage("getTabs", undefined);
+    if (refreshed) store.setTabs(refreshed.tabs);
+  };
+
+  const executeBatchCopy = async () => {
+    const ids = Array.from(stagedTabIds());
+    if (ids.length === 0) return;
+    const allTabs = store.tabs();
+    const matched = allTabs.filter((t) => ids.includes(t.id));
+    const markdown = matched.map((t) => `- [${t.title || t.domain}](${t.url})`).join("\n");
+    try {
+      await navigator.clipboard?.writeText(markdown);
+      showStatus(`Copied ${matched.length} URLs to clipboard`);
+    } catch {
+      showStatus("Failed to copy to clipboard");
+    }
+    clearStagedTabs();
+  };
+
+  const executeBatchGroup = async () => {
+    const ids = Array.from(stagedTabIds());
+    if (ids.length === 0) return;
+    clearStagedTabs();
+    await sendMessage("groupTabs", { tabIds: ids });
+    const refreshed = await sendMessage("getTabs", undefined);
+    if (refreshed) store.setTabs(refreshed.tabs);
+    showStatus(`Grouped ${ids.length} tabs`);
+  };
+
+  const handleBatchAction = async (action: "close" | "move" | "suspend" | "copy" | "group") => {
+    switch (action) {
+      case "close":
+        await executeBatchClose();
+        break;
+      case "move":
+        await executeBatchMove();
+        break;
+      case "suspend":
+        await executeBatchSuspend();
+        break;
+      case "copy":
+        await executeBatchCopy();
+        break;
+      case "group":
+        await executeBatchGroup();
+        break;
+    }
+  };
+
   const store = createSearchStore();
 
   const loadData = async () => {
     try {
-      const [tabData, cfg, cmds, bmarks, hist, dls, closed, wins, customTpls] = await Promise.all([
+      const [tabData, cfg, cmds, bmarks, hist, dls, closed, wins, customTpls, wsList] = await Promise.all([
         sendMessage("getTabs", undefined),
         sendMessage("getConfig", undefined),
         sendMessage("getCommands", undefined),
@@ -44,6 +160,7 @@ export const App: Component<AppProps> = (props) => {
         sendMessage("getRecentlyClosed", { maxResults: 25 }),
         sendMessage("getWindows", undefined),
         (sendMessage as any)("getCustomTemplates", undefined),
+        (sendMessage as any)("getWorkspaces", undefined),
       ]);
 
       if (tabData) {
@@ -111,7 +228,7 @@ export const App: Component<AppProps> = (props) => {
   };
 
   const cycleScope = () => {
-    const scopes: Array<"all" | "window" | "tabs-only" | "groups" | "bookmarks" | "commands" | "history" | "downloads" | "closed" | "windows"> = [
+    const scopes: Array<"all" | "window" | "tabs-only" | "groups" | "bookmarks" | "commands" | "history" | "downloads" | "closed" | "windows" | "workspaces"> = [
       "all",
       "window",
       "tabs-only",
@@ -122,6 +239,7 @@ export const App: Component<AppProps> = (props) => {
       "downloads",
       "closed",
       "windows",
+      "workspaces",
     ];
     const current = store.effectiveScope();
     const nextIdx = (scopes.indexOf(current as any) + 1) % scopes.length;
@@ -325,6 +443,8 @@ export const App: Component<AppProps> = (props) => {
       await restoreClosedItem();
     } else if (sc === "windows") {
       await focusWindowItem();
+    } else if (sc === "workspaces") {
+      await restoreWorkspaceItem();
     } else {
       // Fallback: if still no local match, use fallback search engine (engine-aware)
       if (!hasLocalMatch) {
@@ -402,6 +522,19 @@ export const App: Component<AppProps> = (props) => {
     }
   };
 
+  const restoreWorkspaceItem = async (item?: WorkspaceItem) => {
+    const target = item ?? store.filteredWorkspaces()[store.selectedIndex()] as WorkspaceItem | undefined;
+    if (!target) return;
+    closeOverlay();
+    await sendMessage("restoreWorkspace", { id: target.id });
+  };
+
+  const deleteWorkspaceItem = async (item: WorkspaceItem) => {
+    await sendMessage("deleteWorkspace", { id: item.id });
+    showStatus(`Deleted workspace "${item.name}"`);
+    const refreshed = await (sendMessage as any)("getWorkspaces", undefined);
+    if (refreshed) store.setWorkspaces(refreshed);
+  };
   const focusWindowItem = async (item?: WindowItem) => {
     const target = item ?? store.filteredWindows()[store.selectedIndex()] as WindowItem | undefined;
     if (!target) return;
@@ -556,6 +689,10 @@ export const App: Component<AppProps> = (props) => {
     isContextActionsOpen: () => showContextActions(),
     onCloseContextActions: () => setShowContextActions(false),
     onExecuteContextAction: (action) => handleContextAction(action),
+    onToggleStageCurrent: toggleStageCurrent,
+    onClearStaged: clearStagedTabs,
+    isStagedActive: () => stagedTabIds().size > 0,
+    onExecuteBatchAction: (action) => handleBatchAction(action),
   });
   // Global listeners while overlay is visible — block wheel/scroll/touch
   // bleed-through to the host page while keeping the results list scrollable.
@@ -816,6 +953,17 @@ export const App: Component<AppProps> = (props) => {
               onHover={(idx) => store.setSelectedIndex(idx)}
             />
           </Show>
+          <Show when={store.effectiveScope() === "workspaces"}>
+            <WorkspacesList
+              items={store.filteredWorkspaces()}
+              selectedIndex={store.selectedIndex()}
+              query={store.parsed().query}
+              maxRenderedItems={config().maxRenderedItems}
+              onSelect={(item) => restoreWorkspaceItem(item)}
+              onDelete={(item) => deleteWorkspaceItem(item)}
+              onHover={(idx) => store.setSelectedIndex(idx)}
+            />
+          </Show>
           <Show when={store.effectiveScope() === "windows"}>
             <WindowsList
               items={store.filteredWindows()}
@@ -837,7 +985,7 @@ export const App: Component<AppProps> = (props) => {
               onHover={(idx) => store.setSelectedIndex(idx)}
             />
           </Show>
-          <Show when={! ["commands", "history", "downloads", "closed", "windows", "plugins", "templates"].includes(store.effectiveScope() as string)}>
+          <Show when={! ["commands", "history", "downloads", "closed", "windows", "workspaces", "plugins", "templates"].includes(store.effectiveScope() as string)}>
             <TabList
               tabs={store.filteredTabs()}
               selectedIndex={store.selectedIndex()}
@@ -846,6 +994,9 @@ export const App: Component<AppProps> = (props) => {
               activeTabId={store.activeTabId()}
               focusedWindowId={store.focusedWindowId()}
               maxRenderedItems={config().maxRenderedItems}
+              leavingTabIds={leavingTabIds()}
+              stagedTabIds={stagedTabIds()}
+              onToggleStageTab={toggleStageTab}
               onSelectTab={(tab) => activateCurrentTab(tab)}
               onHoverTab={(idx) => store.setSelectedIndex(idx)}
             />
@@ -904,7 +1055,18 @@ export const App: Component<AppProps> = (props) => {
             )}
           </Show>
 
-          <StatusBar profile={config().keyboardProfile} itemCount={store.totalItemCount()} />
+          <Show when={statusNotification()}>
+            <div class="at-status-toast" role="status">
+              {statusNotification()}
+            </div>
+          </Show>
+
+          <StatusBar
+            profile={config().keyboardProfile}
+            itemCount={store.totalItemCount()}
+            stagedCount={stagedTabIds().size}
+            onClearStaged={clearStagedTabs}
+          />
         </div>
       </div>
     </Show>

@@ -1,4 +1,5 @@
 import { tabStore } from "../state/tabStore";
+import type { TabGroupColor } from "../types/models";
 import type { Result } from "../types/result";
 import { err, ok } from "../types/result";
 import { extractDomain } from "../utils/domain";
@@ -377,5 +378,72 @@ export async function sortWindowTabs(
     return ok(undefined);
   } catch (e) {
     return err("SORT_FAILED", e instanceof Error ? e.message : "Failed to sort tabs");
+  }
+}
+
+export async function moveTabsToNewWindow(
+  tabIds: number[],
+): Promise<Result<{ windowId: number; movedCount: number }>> {
+  try {
+    if (typeof chrome === "undefined" || !chrome.windows?.create || !chrome.tabs) {
+      return err("CHROME_API_UNAVAILABLE", "Chrome windows/tabs API is unavailable");
+    }
+    const validIds = tabIds.filter((id) => typeof id === "number" && id > 0);
+    if (validIds.length === 0) {
+      return err("INVALID_ARGUMENT", "At least one valid tabId is required");
+    }
+
+    const [firstTabId, ...restTabIds] = validIds;
+    const newWindow = await chrome.windows.create({ tabId: firstTabId });
+    if (!newWindow?.id) {
+      return err("MOVE_FAILED", "Failed to create new window");
+    }
+
+    let movedCount = 1;
+    if (restTabIds.length > 0) {
+      try {
+        await chrome.tabs.move(restTabIds, { windowId: newWindow.id, index: -1 });
+        movedCount += restTabIds.length;
+      } catch {
+        // Best effort for subsequent tabs
+      }
+    }
+
+    await tabStore.refresh();
+    return ok({ windowId: newWindow.id, movedCount });
+  } catch (e) {
+    return err("MOVE_FAILED", e instanceof Error ? e.message : "Failed to move tabs to new window");
+  }
+}
+
+export async function groupTabs(
+  tabIds: number[],
+  title?: string,
+  color?: TabGroupColor,
+): Promise<Result<{ groupId: number; count: number }>> {
+  try {
+    if (typeof chrome === "undefined" || !chrome.tabs?.group) {
+      return err("GROUPS_UNSUPPORTED", "Chrome tabGroups API is unavailable");
+    }
+    const validIds = tabIds.filter((id) => typeof id === "number" && id > 0);
+    if (validIds.length === 0) {
+      return err("INVALID_ARGUMENT", "At least one valid tabId is required");
+    }
+    const [firstId, ...rest] = validIds;
+    if (firstId === undefined) {
+      return err("INVALID_ARGUMENT", "At least one valid tabId is required");
+    }
+    const nonNullTabIds: [number, ...number[]] = [firstId, ...rest];
+    const groupId = (await chrome.tabs.group({ tabIds: nonNullTabIds })) as number;
+    if ((title || color) && chrome.tabGroups?.update) {
+      const updateProps: { title?: string; color?: TabGroupColor } = {};
+      if (title) updateProps.title = title;
+      if (color) updateProps.color = color;
+      await chrome.tabGroups.update(groupId, updateProps);
+    }
+    await tabStore.refresh();
+    return ok({ groupId, count: validIds.length });
+  } catch (e) {
+    return err("GROUP_FAILED", e instanceof Error ? e.message : "Failed to group tabs");
   }
 }

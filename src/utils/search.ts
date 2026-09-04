@@ -1,8 +1,8 @@
 import uFuzzy from "@leeoniya/ufuzzy";
-import type { BookmarkItem, CommandItem, DownloadItem, HistoryItem, RecentlyClosedItem, TabGroupItem, TabItem, WindowItem } from "../types/models";
+import type { BookmarkItem, CommandItem, DownloadItem, HistoryItem, RecentlyClosedItem, TabGroupItem, TabItem, WindowItem, WorkspaceItem } from "../types/models";
 
 export type ParsedQuery = {
-  scope: "default" | "tabs" | "groups" | "bookmarks" | "commands" | "history" | "downloads" | "closed" | "windows";
+  scope: "default" | "tabs" | "groups" | "bookmarks" | "commands" | "history" | "downloads" | "closed" | "windows" | "workspaces";
   query: string;
 };
 
@@ -31,6 +31,9 @@ export function parseQuery(input: string): ParsedQuery {
   }
   if (trimmed.startsWith(":c")) {
     return { scope: "closed", query: trimmed.slice(2).trimStart() };
+  }
+  if (trimmed.startsWith(":ws")) {
+    return { scope: "workspaces", query: trimmed.slice(3).trimStart() };
   }
   if (trimmed.startsWith(":w")) {
     return { scope: "windows", query: trimmed.slice(2).trimStart() };
@@ -277,4 +280,22 @@ export function searchWindows(items: WindowItem[], query: string): WindowItem[] 
 export function dedupHistoryWithTabs<T extends { url: string }>(history: T[], tabs: { url: string }[]): T[] {
   const tabUrls = new Set(tabs.map((t) => t.url.toLowerCase()));
   return history.filter((h) => !tabUrls.has(h.url.toLowerCase()));
+}
+
+export function searchWorkspaces(items: WorkspaceItem[], query: string): WorkspaceItem[] {
+  if (!query || query.trim().length === 0) {
+    return items;
+  }
+  const haystack = items.map((w) => `${w.name} ${w.tabs.map((t) => t.title + " " + t.domain).join(" ")}`);
+  const [idxs, info, order] = uf.search(haystack, query);
+  if (!idxs || idxs.length === 0) return [];
+  if (order && info) {
+    return order
+      .map((i) => {
+        const itemIdx = info.idx[i];
+        return itemIdx !== undefined ? items[itemIdx] : undefined;
+      })
+      .filter((v): v is WorkspaceItem => v !== undefined);
+  }
+  return idxs.map((i) => items[i]).filter((v): v is WorkspaceItem => v !== undefined);
 }

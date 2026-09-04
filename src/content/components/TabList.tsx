@@ -14,6 +14,9 @@ interface TabListProps {
   onSelectTab: (tab: TabItem) => void;
   onHoverTab?: (index: number) => void;
   maxRenderedItems: number;
+  leavingTabIds?: Set<number>;
+  stagedTabIds?: Set<number>;
+  onToggleStageTab?: (tabId: number) => void;
 }
 
 const VIRTUAL_THRESHOLD = 200;
@@ -123,6 +126,9 @@ export const TabList: Component<TabListProps> = (props) => {
                     activeTabId={props.activeTabId}
                     focusedWindowId={props.focusedWindowId}
                     isMultiWindow={isMultiWindow()}
+                    isLeaving={Boolean(props.leavingTabIds?.has(tab.id))}
+                    isStaged={Boolean(props.stagedTabIds?.has(tab.id))}
+                    onToggleStage={props.onToggleStageTab}
                     rowRef={(el) => {
                       if (el) rowElements.set(idx(), el);
                       else rowElements.delete(idx());
@@ -158,6 +164,9 @@ export const TabList: Component<TabListProps> = (props) => {
                         activeTabId={props.activeTabId}
                         focusedWindowId={props.focusedWindowId}
                         isMultiWindow={isMultiWindow()}
+                        isLeaving={Boolean(props.leavingTabIds?.has(tab.id))}
+                        isStaged={Boolean(props.stagedTabIds?.has(tab.id))}
+                        onToggleStage={props.onToggleStageTab}
                         rowRef={(el) => {
                           if (el) rowElements.set(idx, el);
                           else rowElements.delete(idx);

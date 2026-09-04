@@ -4,6 +4,8 @@ import type { KeyboardProfile } from "../../types/models";
 interface StatusBarProps {
   profile: KeyboardProfile;
   itemCount?: number;
+  stagedCount?: number;
+  onClearStaged?: () => void;
 }
 
 export const StatusBar: Component<StatusBarProps> = (props) => {
@@ -38,16 +40,33 @@ export const StatusBar: Component<StatusBarProps> = (props) => {
 
   return (
     <div class="at-statusbar">
-      <div class="at-statusbar-hints">
-        <For each={hints()}>
-          {(hint) => (
-            <span class="at-hint">
-              <kbd class="at-kbd">{hint.key}</kbd>
-              <span class="at-hint-label">{hint.label}</span>
-            </span>
-          )}
-        </For>
-      </div>
+      <Show
+        when={(props.stagedCount ?? 0) > 0}
+        fallback={
+          <div class="at-statusbar-hints">
+            <For each={hints()}>
+              {(hint) => (
+                <span class="at-hint">
+                  <kbd class="at-kbd">{hint.key}</kbd>
+                  <span class="at-hint-label">{hint.label}</span>
+                </span>
+              )}
+            </For>
+          </div>
+        }
+      >
+        <div class="at-statusbar-staged-actions">
+          <span class="at-badge at-badge-staged">
+            ✓ {props.stagedCount} {props.stagedCount === 1 ? "tab" : "tabs"} selected
+          </span>
+          <span class="at-hint"><kbd class="at-kbd">x</kbd> <span class="at-hint-label">Close</span></span>
+          <span class="at-hint"><kbd class="at-kbd">w</kbd> <span class="at-hint-label">Move</span></span>
+          <span class="at-hint"><kbd class="at-kbd">s</kbd> <span class="at-hint-label">Sleep</span></span>
+          <span class="at-hint"><kbd class="at-kbd">c</kbd> <span class="at-hint-label">Copy</span></span>
+          <span class="at-hint"><kbd class="at-kbd">g</kbd> <span class="at-hint-label">Group</span></span>
+          <span class="at-hint" style={{ cursor: "pointer" }} onClick={props.onClearStaged}><kbd class="at-kbd">Esc</kbd> <span class="at-hint-label">Clear</span></span>
+        </div>
+      </Show>
       <div>
         <Show when={props.profile !== "standard"}>
           <span class="at-badge" style={{ "margin-right": "8px" }}>

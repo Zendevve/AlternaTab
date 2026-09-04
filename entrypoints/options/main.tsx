@@ -1,6 +1,7 @@
 import { render } from "solid-js/web";
 import { App } from "../../src/options/App";
 import "../../src/options/styles.css";
+import "../../src/assets/styles/overlay.css";
 
 const root = document.getElementById("root");
 if (root) {

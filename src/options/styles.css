@@ -37,6 +37,15 @@
   /* Semantic */
   --danger: #f87171;
   --success: #34d399;
+
+  /* Apple-grade motion tokens */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.15);
+  --duration-instant: 80ms;
+  --duration-fast: 120ms;
+  --duration-standard: 160ms;
 }
 
 @media (prefers-color-scheme: light) {
@@ -165,7 +174,7 @@ p.subtitle {
 
 .form-group:has(input[type="checkbox"]) .form-label {
   cursor: pointer;
- }
+}
 
 select,
 input[type="text"],
@@ -298,7 +307,9 @@ input[type="checkbox"]:focus-visible {
   font-variant-numeric: tabular-nums;
   opacity: 1;
   transform: translateY(0);
-  transition: opacity 160ms cubic-bezier(0.16, 1, 0.3, 1), transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    opacity 160ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
   will-change: transform, opacity;
 }
 .status-msg:not([data-show]) {
@@ -306,7 +317,10 @@ input[type="checkbox"]:focus-visible {
   transform: translateY(4px);
   pointer-events: none;
   visibility: hidden;
-  transition: opacity 140ms cubic-bezier(0.16, 1, 0.3, 1), transform 140ms cubic-bezier(0.16, 1, 0.3, 1), visibility 0s linear 140ms;
+  transition:
+    opacity 140ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 140ms cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0s linear 140ms;
 }
 @starting-style {
   .status-msg[data-show] {
@@ -315,9 +329,17 @@ input[type="checkbox"]:focus-visible {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .status-msg, .status-msg:not([data-show]) {
-    transform: none;
-    transition: opacity 80ms cubic-bezier(0.16, 1, 0.3, 1);
+  .status-msg,
+  .status-msg:not([data-show]),
+  .btn,
+  .bang-alias-badge {
+    animation: none !important;
+    transform: none !important;
+  }
+
+  .status-msg,
+  .status-msg:not([data-show]) {
+    transition: opacity var(--duration-instant) linear !important;
   }
 }
 
@@ -401,13 +423,16 @@ input[type="checkbox"]:focus-visible {
   font-weight: 600;
   cursor: pointer;
   user-select: none;
-  transition: transform 100ms ease;
+  transition:
+    transform var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
 }
 
-.bang-alias-badge:hover {
-  transform: scale(1.05);
+@media (hover: hover) and (pointer: fine) {
+  .bang-alias-badge:hover {
+    transform: scale(1.05);
+  }
 }
-
 .bang-alias-badge:active {
   transform: scale(0.96);
 }

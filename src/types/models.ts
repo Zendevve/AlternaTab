@@ -128,7 +128,23 @@ export interface WindowItem {
   title?: string;
 }
 
-export type LauncherKind = "tab" | "group" | "bookmark" | "history" | "closed" | "download" | "window" | "command";
+export interface WorkspaceTab {
+  title: string;
+  url: string;
+  pinned: boolean;
+  favIconUrl?: string;
+  domain: string;
+}
+
+export interface WorkspaceItem {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+  tabs: WorkspaceTab[];
+}
+
+export type LauncherKind = "tab" | "group" | "bookmark" | "history" | "closed" | "download" | "window" | "command" | "workspace";
 
 export interface LauncherItem {
   kind: LauncherKind;
@@ -161,7 +177,8 @@ export type SearchScope =
   | "windows"
   | "plugins"
   | "templates"
-  | "bangs";
+  | "bangs"
+  | "workspaces";
 
 export interface ExtensionConfig {
   version: string;
@@ -207,7 +224,9 @@ export type CommandId =
   | "bookmark-this"
   | "copy-url"
   | "duplicate-tab"
-  | "clear-browsing-data";
+  | "clear-browsing-data"
+  | "save-workspace"
+  | "view-workspaces";
 
 export interface CommandItem {
   id: CommandId;

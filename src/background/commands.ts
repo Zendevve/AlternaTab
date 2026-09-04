@@ -19,6 +19,7 @@ import {
   togglePinTab,
 } from "./tabs";
 import { mergeAllWindows, splitTabToNewWindow } from "./windows";
+import { saveWorkspace } from "./storage";
 
 export const BUILT_IN_COMMANDS: CommandItem[] = [
   {
@@ -181,6 +182,18 @@ export const BUILT_IN_COMMANDS: CommandItem[] = [
     keywords: ["duplicate", "clone", "copy"],
   },
   {
+    id: "save-workspace",
+    title: "Save Current Window as Workspace",
+    category: "Session",
+    keywords: ["workspace", "stash", "snapshot", "save", "session"],
+  },
+  {
+    id: "view-workspaces",
+    title: "View Saved Workspaces",
+    category: "Session",
+    keywords: ["workspace", "workspaces", "restore", "saved"],
+  },
+  {
     id: "clear-browsing-data",
     title: "Clear Browsing Data",
     category: "System",
@@ -310,6 +323,14 @@ export async function executeCommand(
         }
       }
       return err("NO_TAB", "No tab to duplicate");
+    }
+    case "save-workspace": {
+      const name = "Workspace " + new Date().toLocaleDateString() + " " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      const saved = await saveWorkspace(name, currentWindowId);
+      return ok(saved);
+    }
+    case "view-workspaces": {
+      return ok({ scope: "workspaces" });
     }
     case "clear-browsing-data": {
       if (typeof chrome !== "undefined" && (chrome as any).browsingData?.remove) {

@@ -14,6 +14,9 @@ interface TabRowProps {
   activeTabId?: number;
   focusedWindowId?: number;
   isMultiWindow?: boolean;
+  isLeaving?: boolean;
+  isStaged?: boolean;
+  onToggleStage?: (tabId: number) => void;
 }
 
 export const TabRow: Component<TabRowProps> = (props) => {
@@ -75,7 +78,7 @@ export const TabRow: Component<TabRowProps> = (props) => {
   return (
     <div
       ref={props.rowRef}
-      class={`at-row ${props.selected ? "at-selected" : ""}`}
+      class={`at-row ${props.selected && !props.isLeaving ? "at-selected" : ""} ${props.isLeaving ? "at-row-leaving at-leaving" : ""} ${props.isStaged ? "at-row-staged" : ""}`.trim()}
       data-tab-id={props.tab.id}
       data-tab-domain={props.tab.domain}
       on:click={(e: MouseEvent) => {
@@ -86,6 +89,18 @@ export const TabRow: Component<TabRowProps> = (props) => {
       aria-selected={props.selected ? "true" : "false"}
       tabIndex={props.selected ? 0 : -1}
     >
+      <div
+        class={`at-row-stage-check ${props.isStaged ? "at-staged-active" : ""}`}
+        title={props.isStaged ? "Unstage tab (Space)" : "Stage tab (Space)"}
+        on:click={(e: MouseEvent) => {
+          e.stopPropagation();
+          props.onToggleStage?.(props.tab.id);
+        }}
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      </div>
       <div class="at-row-icon">
         <Show
           when={effectiveSrc() && !iconFailed()}

@@ -10,6 +10,7 @@ import type {
   TabGroupItem,
   TabItem,
   WindowItem,
+  WorkspaceItem,
 } from "../types/models";
 import {
   dedupHistoryWithTabs,
@@ -22,6 +23,7 @@ import {
   searchRecentlyClosed,
   searchTabs,
   searchWindows,
+  searchWorkspaces,
 } from "../utils/search";
 import { parseQuickAction } from "../utils/search/parseActions";
 import { parsePluginQuery } from "../utils/search/plugins";
@@ -43,6 +45,7 @@ export function createSearchStore() {
   const [downloads, setDownloads] = createSignal<DownloadItem[]>([]);
   const [recentlyClosed, setRecentlyClosed] = createSignal<RecentlyClosedItem[]>([]);
   const [windows, setWindows] = createSignal<WindowItem[]>([]);
+  const [workspaces, setWorkspaces] = createSignal<WorkspaceItem[]>([]);
   const [pluginResults, setPluginResults] = createSignal<import("../types/models").PluginResultItem[]>([]);
   const [pluginPrefix, setPluginPrefix] = createSignal<string | null>(null);
   const [customTemplates, setCustomTemplates] = createSignal<import("../types/models").SearchTemplateItem[]>([]);
@@ -70,6 +73,7 @@ export function createSearchStore() {
     if (p.scope === "downloads") return "downloads";
     if (p.scope === "closed") return "closed";
     if (p.scope === "windows") return "windows";
+    if (p.scope === "workspaces") return "workspaces";
     // Bang template overrides scope (second priority after plugins)
     const bq = parseBangQuery(query());
     if (bq) return "templates" as SearchScope;
@@ -160,6 +164,9 @@ export function createSearchStore() {
     return searchRecentlyClosed(recentlyClosed(), effectiveQuery());
   });
 
+  const filteredWorkspaces = createMemo(() => {
+    return searchWorkspaces(workspaces(), effectiveQuery());
+  });
   const filteredWindows = createMemo(() => {
     const p = parsed();
     const currentScope = effectiveScope();
@@ -221,6 +228,7 @@ export function createSearchStore() {
     if (c === "downloads") return filteredDownloads().length;
     if (c === "closed") return filteredRecentlyClosed().length;
     if (c === "windows") return filteredWindows().length;
+    if (c === "workspaces") return filteredWorkspaces().length;
     if (c === "plugins") return pluginResults().length;
     if (c === "templates") return templateResult() ? 1 : 0;
     if (c === "bangs") return matchingBangs().length;
@@ -247,6 +255,8 @@ export function createSearchStore() {
     setRecentlyClosed,
     windows,
     setWindows,
+    workspaces,
+    setWorkspaces,
     selectedIndex,
     setSelectedIndex,
     activeTabId,
@@ -263,6 +273,7 @@ export function createSearchStore() {
     filteredDownloads,
     filteredRecentlyClosed,
     filteredWindows,
+    filteredWorkspaces,
     calcItem,
     navigateItem,
     fallbackItem,

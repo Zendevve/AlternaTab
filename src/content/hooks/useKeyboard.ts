@@ -23,6 +23,10 @@ export interface KeyboardHandlers {
   onExecuteContextAction?: (
     action: "pin" | "mute" | "duplicate" | "move" | "discard" | "close",
   ) => void;
+  onToggleStageCurrent?: () => void;
+  onClearStaged?: () => boolean;
+  isStagedActive?: () => boolean;
+  onExecuteBatchAction?: (action: "close" | "move" | "suspend" | "copy" | "group") => void;
 }
 
 export function createKeyboardHandler(profile: () => KeyboardProfile, handlers: KeyboardHandlers) {
@@ -46,6 +50,9 @@ export function createKeyboardHandler(profile: () => KeyboardProfile, handlers: 
     if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
+      if (handlers.onClearStaged?.()) {
+        return true;
+      }
       if (handlers.isContextActionsOpen?.()) {
         handlers.onCloseContextActions?.();
         return true;
@@ -126,6 +133,55 @@ export function createKeyboardHandler(profile: () => KeyboardProfile, handlers: 
       return true;
     }
 
+    // 2.5. Staged Action Keys when tabs are staged
+    if (handlers.isStagedActive?.()) {
+      const lower = e.key.toLowerCase();
+      if (e.code === "Space" && (e.shiftKey || e.altKey)) {
+        e.preventDefault();
+        e.stopPropagation();
+        handlers.onToggleStageCurrent?.();
+        return true;
+      }
+      if (e.code === "Space" && handlers.isQueryEmpty()) {
+        e.preventDefault();
+        e.stopPropagation();
+        handlers.onToggleStageCurrent?.();
+        return true;
+      }
+      if (handlers.isQueryEmpty() || !isTargetInput || e.shiftKey || e.altKey) {
+        if (e.key === "Delete" || ((lower === "x" || lower === "d") && (handlers.isQueryEmpty() || !isTargetInput || e.shiftKey))) {
+          e.preventDefault();
+          e.stopPropagation();
+          handlers.onExecuteBatchAction?.("close");
+          return true;
+        }
+        if (lower === "w" && (handlers.isQueryEmpty() || !isTargetInput || e.altKey)) {
+          e.preventDefault();
+          e.stopPropagation();
+          handlers.onExecuteBatchAction?.("move");
+          return true;
+        }
+        if (lower === "s" && (handlers.isQueryEmpty() || !isTargetInput || e.altKey)) {
+          e.preventDefault();
+          e.stopPropagation();
+          handlers.onExecuteBatchAction?.("suspend");
+          return true;
+        }
+        if (lower === "c" && (handlers.isQueryEmpty() || !isTargetInput || e.altKey)) {
+          e.preventDefault();
+          e.stopPropagation();
+          handlers.onExecuteBatchAction?.("copy");
+          return true;
+        }
+        if (lower === "g" && (handlers.isQueryEmpty() || !isTargetInput || e.altKey)) {
+          e.preventDefault();
+          e.stopPropagation();
+          handlers.onExecuteBatchAction?.("group");
+          return true;
+        }
+      }
+    }
+
     // 3. Ctrl+Enter / Cmd+Enter: split to new window
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
@@ -177,7 +233,11 @@ export function createKeyboardHandler(profile: () => KeyboardProfile, handlers: 
       if (e.key === "m") {
         e.preventDefault();
         e.stopPropagation();
-        handlers.onToggleMute();
+        if (handlers.onToggleStageCurrent) {
+          handlers.onToggleStageCurrent();
+        } else {
+          handlers.onToggleMute();
+        }
         return true;
       }
       if (e.key === "p") {
@@ -285,6 +345,21 @@ export function createKeyboardHandler(profile: () => KeyboardProfile, handlers: 
         }
         // Let native input handle backspacing/deletion
         return false;
+      }
+
+      // Allow Shift+Space / Alt+Space to stage even while typing in input
+      if (e.code === "Space" && (e.shiftKey || e.altKey)) {
+        e.preventDefault();
+        e.stopPropagation();
+        handlers.onToggleStageCurrent?.();
+        return true;
+      }
+      // When input is empty, Space stages the current tab
+      if (e.code === "Space" && handlers.isQueryEmpty()) {
+        e.preventDefault();
+        e.stopPropagation();
+        handlers.onToggleStageCurrent?.();
+        return true;
       }
 
       // Allow all normal typing in the input!

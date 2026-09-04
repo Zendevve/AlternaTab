@@ -1,4 +1,5 @@
-import type { ExtensionConfig, PersistedTabStats } from "../types/models";
+import type { ExtensionConfig, PersistedTabStats, WorkspaceItem, WorkspaceTab } from "../types/models";
+import { extractDomain } from "../utils/domain";
 import { normalizeUrl } from "../utils/url";
 import { DEFAULT_CONFIG, validateConfig } from "../utils/validation";
 
@@ -94,4 +95,128 @@ export async function updateTabActivationStat(
     activationCount: updated.activationCount,
     lastActivatedAt: updated.lastActivatedAt,
   };
+}
+
+export const WORKSPACES_STORAGE_KEY = "alternatab_workspaces";
+
+export async function loadWorkspaces(): Promise<WorkspaceItem[]> {
+  try {
+    if (typeof chrome === "undefined" || !chrome.storage?.local) return [];
+    const data = await chrome.storage.local.get(WORKSPACES_STORAGE_KEY);
+    return (data[WORKSPACES_STORAGE_KEY] as WorkspaceItem[]) || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveWorkspace(name: string, windowId?: number): Promise<WorkspaceItem> {
+  const existing = await loadWorkspaces();
+  let queryFilter: chrome.tabs.QueryInfo = {};
+  if (windowId && windowId > 0) {
+    queryFilter = { windowId };
+  } else if (typeof chrome !== "undefined" && chrome.windows?.getCurrent) {
+    try {
+      const currentWin = await chrome.windows.getCurrent();
+      if (currentWin?.id) queryFilter = { windowId: currentWin.id };
+    } catch {
+      // Ignore
+    }
+  }
+
+  const rawTabs = typeof chrome !== "undefined" && chrome.tabs?.query
+    ? await chrome.tabs.query(queryFilter)
+    : [];
+
+  const tabs: WorkspaceTab[] = rawTabs
+    .filter((t) => t.url && t.url.length > 0)
+    .map((t) => ({
+      title: t.title || extractDomain(t.url || ""),
+      url: t.url || "",
+      pinned: !!t.pinned,
+      favIconUrl: t.favIconUrl,
+      domain: extractDomain(t.url || ""),
+    }));
+
+  const now = Date.now();
+  const workspace: WorkspaceItem = {
+    id: "ws_" + now + "_" + Math.random().toString(36).slice(2, 7),
+    name: name.trim() || "Workspace " + new Date(now).toLocaleDateString(),
+    createdAt: now,
+    updatedAt: now,
+    tabs,
+  };
+
+  const updated = [workspace, ...existing.filter((w) => w.id !== workspace.id)];
+  if (typeof chrome !== "undefined" && chrome.storage?.local) {
+    await chrome.storage.local.set({ [WORKSPACES_STORAGE_KEY]: updated });
+  }
+
+  return workspace;
+}
+
+export async function deleteWorkspace(id: string): Promise<void> {
+  const existing = await loadWorkspaces();
+  const updated = existing.filter((w) => w.id !== id);
+  if (typeof chrome !== "undefined" && chrome.storage?.local) {
+    await chrome.storage.local.set({ [WORKSPACES_STORAGE_KEY]: updated });
+  }
+}
+
+export async function restoreWorkspace(
+  id: string,
+  newWindow = false,
+): Promise<{ openedCount: number }> {
+  const existing = await loadWorkspaces();
+  const workspace = existing.find((w) => w.id === id);
+  if (!workspace || workspace.tabs.length === 0) {
+    return { openedCount: 0 };
+  }
+
+  if (typeof chrome === "undefined" || !chrome.tabs?.create) {
+    return { openedCount: 0 };
+  }
+
+  let targetWindowId: number | undefined;
+  if (newWindow && chrome.windows?.create) {
+    const firstTab = workspace.tabs[0];
+    if (!firstTab) return { openedCount: 0 };
+    const win = await chrome.windows.create({
+      url: firstTab.url,
+      focused: true,
+    });
+    targetWindowId = win?.id;
+    for (let i = 1; i < workspace.tabs.length; i++) {
+      const tabInfo = workspace.tabs[i];
+      if (!tabInfo) continue;
+      const created = await chrome.tabs.create({
+        windowId: targetWindowId,
+        url: tabInfo.url,
+        pinned: tabInfo.pinned,
+        active: false,
+      });
+      if (created?.id && chrome.tabs.discard) {
+        try {
+          await chrome.tabs.discard(created.id);
+        } catch {}
+      }
+    }
+    return { openedCount: workspace.tabs.length };
+  }
+
+  for (let i = 0; i < workspace.tabs.length; i++) {
+    const tabInfo = workspace.tabs[i];
+    if (!tabInfo) continue;
+    const created = await chrome.tabs.create({
+      url: tabInfo.url,
+      pinned: tabInfo.pinned,
+      active: i === 0,
+    });
+    if (i > 0 && created?.id && chrome.tabs.discard) {
+      try {
+        await chrome.tabs.discard(created.id);
+      } catch {}
+    }
+  }
+
+  return { openedCount: workspace.tabs.length };
 }

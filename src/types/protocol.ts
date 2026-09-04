@@ -12,9 +12,11 @@ import type {
   SearchTemplateItem,
   RecentlyClosedItem,
   TabFilter,
+  TabGroupColor,
   TabGroupItem,
   TabItem,
   WindowItem,
+  WorkspaceItem,
 } from "./models";
 import type { Result } from "./result";
 
@@ -34,6 +36,8 @@ export interface ProtocolMap {
   toggleMuteTab(data: { tabId: number }): Result<{ muted: boolean }>;
   togglePinTab(data: { tabId: number }): Result<{ pinned: boolean }>;
   moveTabToNewWindow(data: { tabId: number }): Result<{ windowId: number; tabId: number }>;
+  moveTabsToNewWindow(data: { tabIds: number[] }): Result<{ windowId: number; movedCount: number }>;
+  groupTabs(data: { tabIds: number[]; title?: string; color?: TabGroupColor }): Result<{ groupId: number; count: number }>;
   groupTabsByDomain(data: { windowId?: number }): Result<{ groupedCount: number }>;
   deduplicateTabs(data: { windowId?: number }): Result<{ closedCount: number }>;
   closeInactiveTabs(data: { maxAgeMinutes: number }): Result<{ closedCount: number }>;
@@ -68,5 +72,9 @@ export interface ProtocolMap {
   importCommandPack(data: { json: string }): Result<CommandPack>;
   exportCommandPack(data: { id: string }): Result<string>;
   deleteCommandPack(data: { id: string }): Result<void>;
+  getWorkspaces(): WorkspaceItem[];
+  saveWorkspace(data: { name: string; windowId?: number }): Result<WorkspaceItem>;
+  deleteWorkspace(data: { id: string }): Result<void>;
+  restoreWorkspace(data: { id: string; newWindow?: boolean }): Result<{ openedCount: number }>;
 }
 export const { sendMessage, onMessage } = defineExtensionMessaging<ProtocolMap>();
