@@ -274,7 +274,14 @@
   -webkit-backdrop-filter: blur(40px) saturate(180%);
   overflow: hidden;
   animation: at-scale-in var(--duration-fast) var(--ease-out);
-  will-change: transform, opacity;
+  will-change: height, transform, opacity;
+  transition: height 240ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.at-hud-inner {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
 }
 
 @keyframes at-scale-in {
@@ -308,12 +315,17 @@
   flex-shrink: 0;
 }
 
-.at-search-input {
+.at-search-input,
+input.at-search-input {
   flex: 1;
   min-width: 0;
-  background: transparent;
-  border: none;
-  outline: none;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
   font-size: 15px;
   font-weight: 450;
   color: var(--at-text);
@@ -328,10 +340,16 @@
   opacity: 1;
 }
 
-.at-search-input:focus {
-  outline: none;
+.at-search-input:hover,
+input.at-search-input:hover,
+.at-search-input:focus,
+input.at-search-input:focus {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
-
 .at-search-input::selection {
   background: var(--at-accent-soft);
   color: var(--at-text);
@@ -416,9 +434,9 @@
 .at-row {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
+  padding: 8px 10px;
   border-radius: 10px;
-  gap: 12px;
+  gap: 10px;
   cursor: pointer;
   user-select: none;
   color: var(--at-text);
@@ -435,6 +453,16 @@
     max-height var(--duration-standard) var(--ease-out),
     padding var(--duration-standard) var(--ease-out),
     margin var(--duration-standard) var(--ease-out);
+}
+
+.at-row-icon-wrap {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .at-row:hover {
@@ -1036,36 +1064,48 @@
 
 /* Multi-Tab Staging & Action Bar Styles */
 .at-row-stage-check {
+  position: absolute;
+  inset: -1px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
-  margin-right: 8px;
-  border-radius: 4px;
+  border-radius: 5px;
   border: 1.5px solid var(--at-border);
-  background: transparent;
+  background: var(--at-surface-1, #1e2024);
   color: transparent;
   cursor: pointer;
-  flex-shrink: 0;
-  transition: all var(--duration-fast, 140ms) var(--ease-out, ease-out);
+  opacity: 0;
+  transform: scale(0.85);
+  pointer-events: none;
+  transition:
+    opacity 140ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 140ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 140ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 140ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .at-row:hover .at-row-stage-check {
+  opacity: 0.85;
+  transform: scale(1);
+  pointer-events: auto;
   border-color: var(--at-text-muted);
 }
 
 .at-row-stage-check:hover {
+  opacity: 1;
   border-color: var(--at-accent);
-  background: rgba(var(--at-accent-rgb, 59, 130, 246), 0.1);
+  background: rgba(var(--at-accent-rgb, 59, 130, 246), 0.25);
 }
 
 .at-row-stage-check.at-staged-active {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
   background: var(--at-accent, #3b82f6);
   border-color: var(--at-accent, #3b82f6);
   color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
-
 .at-row.at-row-staged {
   background: rgba(var(--at-accent-rgb, 59, 130, 246), 0.08);
   border-left: 3px solid var(--at-accent, #3b82f6);

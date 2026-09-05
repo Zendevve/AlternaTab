@@ -61,13 +61,27 @@ class TabStore {
       const now = Date.now();
       const halfLife = configStore.get().frecencyHalfLifeMinutes;
 
+      const optionsUrlPrefix =
+        typeof chrome !== "undefined" && chrome.runtime?.getURL
+          ? chrome.runtime.getURL("options.html")
+          : "";
+      const staleHudTabIds: number[] = [];
+
       for (const t of rawTabs) {
         if (!t.id) continue;
+
+        const url = t.url || "";
+        if (optionsUrlPrefix && url.startsWith(optionsUrlPrefix)) {
+          if (!t.active) {
+            staleHudTabIds.push(t.id);
+          }
+          continue;
+        }
+
         if (t.active && (t.windowId === this.focusedWindowId || this.focusedWindowId === -1)) {
           this.activeTabId = t.id;
         }
 
-        const url = t.url || "";
         const domain = extractDomain(url);
         const stats = sessionStore.getStats(url);
         const lastActivated = stats.lastActivatedAt || t.lastAccessed || now;
@@ -104,6 +118,10 @@ class TabStore {
         };
 
         this.tabs.set(t.id, tabItem);
+      }
+
+      if (staleHudTabIds.length > 0 && typeof chrome !== "undefined" && chrome.tabs?.remove) {
+        chrome.tabs.remove(staleHudTabIds).catch(() => {});
       }
     } catch {
       // Query error handled gracefully

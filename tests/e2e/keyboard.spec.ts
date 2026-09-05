@@ -54,6 +54,38 @@ test.describe("AlternaTab NextGen Keyboard & Navigation", () => {
     }
   });
 
+  test("toggles overlay using Alt+Q keyboard shortcut", async () => {
+    const { context } = await createExtensionContext();
+
+    try {
+      const page = await context.newPage();
+      await page.goto("https://example.com");
+
+      const host = page.locator("#alternatab-host");
+      await expect(host).toBeAttached();
+
+      await page.keyboard.press("Alt+KeyQ");
+      await page.waitForTimeout(200);
+
+      const isVisible = await page.evaluate(() => {
+        const h = document.getElementById("alternatab-host");
+        return h?.style.display !== "none" && !!h?.shadowRoot?.querySelector(".at-hud-container");
+      });
+      expect(isVisible).toBe(true);
+
+      await page.keyboard.press("Alt+KeyQ");
+      await page.waitForTimeout(200);
+
+      const isHidden = await page.evaluate(() => {
+        const h = document.getElementById("alternatab-host");
+        return h?.style.display === "none";
+      });
+      expect(isHidden).toBe(true);
+    } finally {
+      await context.close();
+    }
+  });
+
   test("configures keyboard profiles in options", async () => {
     const { context, extensionId } = await createExtensionContext();
 

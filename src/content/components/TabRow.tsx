@@ -89,63 +89,32 @@ export const TabRow: Component<TabRowProps> = (props) => {
       aria-selected={props.selected ? "true" : "false"}
       tabIndex={props.selected ? 0 : -1}
     >
-      <div
-        class={`at-row-stage-check ${props.isStaged ? "at-staged-active" : ""}`}
-        title={props.isStaged ? "Unstage tab (Space)" : "Stage tab (Space)"}
-        on:click={(e: MouseEvent) => {
-          e.stopPropagation();
-          props.onToggleStage?.(props.tab.id);
-        }}
-      >
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
-      </div>
-      <div class="at-row-icon">
-        <Show
-          when={effectiveSrc() && !iconFailed()}
-          fallback={
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              aria-hidden="true"
-            >
-              <title>Default tab icon</title>
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-              <line x1="3" y1="9" x2="21" y2="9" />
-            </svg>
-          }
-        >
-          <img
-            src={effectiveSrc() ?? ""}
-            alt=""
-            class="at-favicon"
-            referrerPolicy="no-referrer"
-            onError={() => {
-              const attempt = retryCount();
-              const url = props.tab.favIconUrl;
-              if (!url) {
-                setIconFailed(true);
-                return;
-              }
-              if (attempt < 3) {
-                const delay = 500 * 2 ** attempt;
-                clearRetryTimer();
-                retryTimer = setTimeout(() => {
-                  setRetryCount(attempt + 1);
-                  setIconSrc(`${url}${url.includes("?") ? "&" : "?"}r=${attempt + 1}`);
-                }, delay);
-                return;
-              }
-              tryProxy();
-            }}
-            onLoad={(e) => {
-              const img = e.currentTarget as HTMLImageElement;
-              if (img.naturalWidth === 0 || img.naturalHeight === 0) {
+      <div class="at-row-icon-wrap">
+        <div class="at-row-icon">
+          <Show
+            when={effectiveSrc() && !iconFailed()}
+            fallback={
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
+                <title>Default tab icon</title>
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <line x1="3" y1="9" x2="21" y2="9" />
+              </svg>
+            }
+          >
+            <img
+              src={effectiveSrc() ?? ""}
+              alt=""
+              class="at-favicon"
+              referrerPolicy="no-referrer"
+              onError={() => {
                 const attempt = retryCount();
                 const url = props.tab.favIconUrl;
                 if (!url) {
@@ -162,10 +131,43 @@ export const TabRow: Component<TabRowProps> = (props) => {
                   return;
                 }
                 tryProxy();
-              }
-            }}
-          />
-        </Show>
+              }}
+              onLoad={(e) => {
+                const img = e.currentTarget as HTMLImageElement;
+                if (img.naturalWidth === 0 || img.naturalHeight === 0) {
+                  const attempt = retryCount();
+                  const url = props.tab.favIconUrl;
+                  if (!url) {
+                    setIconFailed(true);
+                    return;
+                  }
+                  if (attempt < 3) {
+                    const delay = 500 * 2 ** attempt;
+                    clearRetryTimer();
+                    retryTimer = setTimeout(() => {
+                      setRetryCount(attempt + 1);
+                      setIconSrc(`${url}${url.includes("?") ? "&" : "?"}r=${attempt + 1}`);
+                    }, delay);
+                    return;
+                  }
+                  tryProxy();
+                }
+              }}
+            />
+          </Show>
+        </div>
+        <div
+          class={`at-row-stage-check ${props.isStaged ? "at-staged-active" : ""}`}
+          title={props.isStaged ? "Unstage tab (Space)" : "Stage tab (Space)"}
+          on:click={(e: MouseEvent) => {
+            e.stopPropagation();
+            props.onToggleStage?.(props.tab.id);
+          }}
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        </div>
       </div>
       <div class="at-row-main">
         <div class="at-row-title">

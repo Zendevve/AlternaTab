@@ -30,6 +30,8 @@ export const App: Component<AppProps> = (props) => {
   const [contextActionIndex, setContextActionIndex] = createSignal(0);
 
   let searchInputRef: HTMLInputElement | undefined;
+  let hudContainerEl: HTMLDivElement | undefined;
+  let hudInnerEl: HTMLDivElement | undefined;
 
   const [leavingTabIds, setLeavingTabIds] = createSignal<Set<number>>(new Set());
   const [stagedTabIds, setStagedTabIds] = createSignal<Set<number>>(new Set());
@@ -756,7 +758,43 @@ export const App: Component<AppProps> = (props) => {
     props.onVisibilityChange?.(visible());
   });
 
+  createEffect(() => {
+    if (!visible()) return;
+
+    if (hudInnerEl && typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const height = Math.ceil(entry.contentRect.height);
+          if (height > 0 && hudContainerEl) {
+            hudContainerEl.style.height = `${height}px`;
+          }
+        }
+      });
+      observer.observe(hudInnerEl);
+      onCleanup(() => observer.disconnect());
+    }
+  });
+
   onMount(() => {
+    const handleGlobalAltQ = (e: KeyboardEvent) => {
+      const isAltQ =
+        e.altKey &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        (e.key === "q" || e.key === "Q" || e.code === "KeyQ");
+
+      if (isAltQ) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (visible()) {
+          closeOverlay();
+        } else {
+          openOverlay();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleGlobalAltQ, { capture: true });
+
     const handleRuntimeMessage = (msg: { type: string }) => {
       if (msg?.type === "TOGGLE_ALTERNATAB_OVERLAY") {
         if (visible()) {
@@ -783,6 +821,7 @@ export const App: Component<AppProps> = (props) => {
     window.addEventListener("message", handleWindowMessage);
 
     onCleanup(() => {
+      window.removeEventListener("keydown", handleGlobalAltQ, { capture: true } as EventListenerOptions);
       if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
         chrome.runtime.onMessage.removeListener(handleRuntimeMessage);
       }
@@ -818,6 +857,9 @@ export const App: Component<AppProps> = (props) => {
         />
 
         <div
+          ref={(el) => {
+            hudContainerEl = el;
+          }}
           class="at-hud-container"
           role="dialog"
           aria-modal="true"
@@ -829,6 +871,12 @@ export const App: Component<AppProps> = (props) => {
             e.stopPropagation();
           }}
         >
+          <div
+            ref={(el) => {
+              hudInnerEl = el;
+            }}
+            class="at-hud-inner"
+          >
           <SearchBar
             query={store.query()}
             onQueryChange={(q) => {
@@ -1067,6 +1115,7 @@ export const App: Component<AppProps> = (props) => {
             stagedCount={stagedTabIds().size}
             onClearStaged={clearStagedTabs}
           />
+          </div>
         </div>
       </div>
     </Show>

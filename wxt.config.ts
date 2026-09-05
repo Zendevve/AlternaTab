@@ -20,7 +20,17 @@ export default defineConfig({
     description:
       "Ultra-fast, keyboard-first tab switching, search, organization, and tab lifecycle management",
     version: "1.0.0",
-    permissions: ["tabs", "storage", "sessions", "tabGroups", "commands", "history", "downloads", "bookmarks"],
+    permissions: [
+      "tabs",
+      "storage",
+      "sessions",
+      "tabGroups",
+      "commands",
+      "history",
+      "downloads",
+      "bookmarks",
+      "scripting",
+    ],
     host_permissions: ["<all_urls>"],
     web_accessible_resources: [
       {
@@ -40,6 +50,9 @@ export default defineConfig({
       "toggle-overlay": {
         suggested_key: {
           default: "Alt+Q",
+          windows: "Alt+Q",
+          linux: "Alt+Q",
+          chromeos: "Alt+Q",
           mac: "Command+Shift+K",
         },
         description: "Open or toggle the tab search HUD",

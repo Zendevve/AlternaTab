@@ -67,57 +67,115 @@ export function registerBackgroundEvents(): void {
     });
   }
 
-  // Commands events
   if (chrome.commands) {
     chrome.commands.onCommand.addListener(async (command) => {
-      if (command === "toggle-overlay") {
-        let activeTab: chrome.tabs.Tab | undefined;
-        try {
-          const [tab] = await chrome.tabs.query({
-            active: true,
-            lastFocusedWindow: true,
-          });
-          activeTab = tab;
-        } catch {
-          // Tab query error
-        }
-
-        const isRestricted =
-          !activeTab?.url ||
-          activeTab.url.startsWith("chrome://") ||
-          activeTab.url.startsWith("chrome-extension://") ||
-          activeTab.url.startsWith("https://chromewebstore.google.com") ||
-          activeTab.url.startsWith("view-source:");
-
-        if (!isRestricted && activeTab?.id) {
-          try {
-            await chrome.tabs.sendMessage(activeTab.id, {
-              type: "TOGGLE_ALTERNATAB_OVERLAY",
-            });
-            return;
-          } catch {
-            // Message failed, fall through to fallback HUD
-          }
-        }
-
-        // Fallback: open popup or HUD options tab
-        try {
-          if (typeof chrome.action?.openPopup === "function") {
-            await chrome.action.openPopup();
-            return;
-          }
-        } catch {
-          // openPopup not supported or unavailable
-        }
-
-        try {
-          await chrome.tabs.create({
-            url: chrome.runtime.getURL("options.html?mode=hud"),
-          });
-        } catch {
-          // Standalone HUD creation error handled
-        }
+      if (command === "toggle-overlay" || command === "_execute_action") {
+        await triggerToggleOverlay();
       }
     });
+  }
+
+  if (chrome.action?.onClicked) {
+    chrome.action.onClicked.addListener(async () => {
+      await triggerToggleOverlay();
+    });
+  }
+}
+
+export async function triggerToggleOverlay(): Promise<void> {
+  let activeTab: chrome.tabs.Tab | undefined;
+  try {
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      lastFocusedWindow: true,
+    });
+    activeTab = tab;
+  } catch {
+    // Query error
+  }
+
+  if (!activeTab) {
+    try {
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+      activeTab = tab;
+    } catch {
+      // Query error
+    }
+  }
+
+  if (!activeTab) {
+    try {
+      const tabs = await chrome.tabs.query({ active: true });
+      activeTab = tabs[0];
+    } catch {
+      // Query error
+    }
+  }
+
+  const isRestricted =
+    Boolean(activeTab?.url) &&
+    (activeTab!.url!.startsWith("chrome://") ||
+      activeTab!.url!.startsWith("chrome-extension://") ||
+      activeTab!.url!.startsWith("https://chromewebstore.google.com") ||
+      activeTab!.url!.startsWith("view-source:"));
+
+  if (activeTab?.id && !isRestricted) {
+    try {
+      await chrome.tabs.sendMessage(activeTab.id, {
+        type: "TOGGLE_ALTERNATAB_OVERLAY",
+      });
+      return;
+    } catch {
+      try {
+        if (chrome.scripting) {
+          await chrome.scripting.executeScript({
+            target: { tabId: activeTab.id },
+            files: ["content-scripts/content.js"],
+          });
+          const { promise: delayPromise, resolve: delayResolve } = Promise.withResolvers<void>();
+          setTimeout(delayResolve, 50);
+          await delayPromise;
+          await chrome.tabs.sendMessage(activeTab.id, {
+            type: "TOGGLE_ALTERNATAB_OVERLAY",
+          });
+          return;
+        }
+      } catch {
+        // Dynamic injection failed
+      }
+    }
+  }
+
+  if (isRestricted) {
+    try {
+      if (typeof chrome.action?.openPopup === "function") {
+        await chrome.action.openPopup();
+        return;
+      }
+    } catch {
+      // openPopup not supported or unavailable
+    }
+
+    try {
+      const hudUrl = chrome.runtime.getURL("options.html?mode=hud");
+      const existing = await chrome.tabs.query({ url: `${hudUrl}*` });
+      const first = existing[0];
+      if (first?.id) {
+        await chrome.tabs.update(first.id, { active: true });
+        if (first.windowId) {
+          await chrome.windows.update(first.windowId, { focused: true });
+        }
+        return;
+      }
+
+      await chrome.tabs.create({
+        url: hudUrl,
+      });
+    } catch {
+      // Standalone HUD creation error handled
+    }
   }
 }

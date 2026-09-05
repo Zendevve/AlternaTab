@@ -176,9 +176,12 @@ p.subtitle {
   cursor: pointer;
 }
 
-select,
-input[type="text"],
-input[type="number"] {
+.options-container select,
+.options-container input[type="text"],
+.options-container input[type="number"],
+.form-group select,
+.form-group input[type="text"],
+.form-group input[type="number"] {
   width: 100%;
   box-sizing: border-box;
   background-color: var(--bg-primary);
@@ -196,15 +199,21 @@ input[type="number"] {
     background-color 120ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-select:hover,
-input[type="text"]:hover,
-input[type="number"]:hover {
+.options-container select:hover,
+.options-container input[type="text"]:hover,
+.options-container input[type="number"]:hover,
+.form-group select:hover,
+.form-group input[type="text"]:hover,
+.form-group input[type="number"]:hover {
   border-color: var(--border-strong);
 }
 
-select:focus,
-input[type="text"]:focus,
-input[type="number"]:focus {
+.options-container select:focus,
+.options-container input[type="text"]:focus,
+.options-container input[type="number"]:focus,
+.form-group select:focus,
+.form-group input[type="text"]:focus,
+.form-group input[type="number"]:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-ring);
 }
